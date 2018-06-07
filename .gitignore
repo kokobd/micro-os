@@ -1,0 +1,10 @@
+**/cmake-build-*/
+build/
+
+.vscode/
+.idea/
+
+Testing/
+toolchain/
+
+**/.stack-work/
