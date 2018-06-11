@@ -20,11 +20,12 @@ void core_BitSet_init(core_BitSet *bitSet, bool init);
 
 /**
  * Set bits in [from, to) to a specific value
- * @param from index from
- * @param to index to
+ * @param index bit index
  * @return whether the operation succeeded
  */
-bool core_BitSet_set(core_BitSet *bitSet, size_t from, bool value);
+bool core_BitSet_set(core_BitSet *bitSet, size_t index, bool value);
+
+bool core_BitSet_get(core_BitSet *bitSet, size_t index);
 
 size_t core_BitSet_length(core_BitSet *bitSet);
 

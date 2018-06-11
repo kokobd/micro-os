@@ -12,13 +12,13 @@ void core_BitSet_init(core_BitSet *bitSet, bool init) {
     memset(bitSet->data, init ? UINT8_MAX : 0, count);
 }
 
-bool core_BitSet_set(core_BitSet *bitSet, size_t from, bool value) {
-    if (from >= bitSet->sizeInBits)
+bool core_BitSet_set(core_BitSet *bitSet, size_t index, bool value) {
+    if (index >= bitSet->sizeInBits)
         return false;
     if (value) {
-        bitSet->data[from / 32u] |= (1u << (from % 32u));
+        bitSet->data[index / 32u] |= (1u << (index % 32u));
     } else {
-        bitSet->data[from / 32u] &= ~(1u << (from % 32u));
+        bitSet->data[index / 32u] &= ~(1u << (index % 32u));
     }
     return true;
 }
@@ -64,4 +64,8 @@ size_t core_BitSet_findFirst(core_BitSet *bitSet, bool value) {
     }
 
     return bitSet->sizeInBits;
+}
+
+bool core_BitSet_get(core_BitSet *bitSet, size_t index) {
+    return (bool) (bitSet->data[index / 32u] & (1u << (index % 32u)));
 }

@@ -124,3 +124,12 @@ uintptr_t pmm_firstFrame() {
 uintptr_t pmm_idPageTable() {
     return idPageTable;
 }
+
+size_t pmm_frameCount() {
+    return core_BitSet_length(&availableFrames);
+}
+
+bool pmm_isAvailable(uintptr_t frame) {
+    uint32_t i = addressToIndex(frame);
+    return core_BitSet_get(&availableFrames, i);
+}

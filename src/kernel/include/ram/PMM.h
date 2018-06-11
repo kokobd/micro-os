@@ -3,6 +3,7 @@
 #include <multiboot2.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 /**
  * Initialize the physical memory manager
@@ -23,4 +24,8 @@ void pmm_free(uintptr_t frame);
 
 uintptr_t pmm_firstFrame();
 
+size_t pmm_frameCount();
+
 uintptr_t pmm_idPageTable();
+
+bool pmm_isAvailable(uintptr_t frame);

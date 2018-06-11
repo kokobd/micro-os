@@ -6,6 +6,7 @@
 
 #define PAGE_SIZE 4096u
 #define PAGE_SHIFT 12u
+#define PAGE_DIR_SHIFT 22u
 
 #define KERNEL_STACK_BASE 0x7FFFF
 

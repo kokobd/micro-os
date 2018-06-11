@@ -2,8 +2,17 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 
 void PageTable_enablePaging();
+
+/**
+ * Subsequently created page tables will have a shared, writable,
+ * kernel-mode memory region. Note that it won't present in ID map.
+ * @param vaddr must be aligned to 4MiB boundary
+ * @param size size of the requested memory region.
+ */
+void PageTable_allocateGlobally(uintptr_t vaddr, size_t size);
 
 /**
  * Precondition: (Paging not enabled) OR (Identity mapping is in effect)

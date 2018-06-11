@@ -147,6 +147,32 @@ void PageTable_enablePaging() {
     }
 }
 
+struct GlobalPageDirEntries {
+    uint32_t begin_i;
+    uint32_t end_i;
+    struct PDE pdes[PDE_COUNT];
+};
+
+static struct GlobalPageDirEntries gpdes;
+
+void PageTable_allocateGlobally(uintptr_t vaddr, size_t size) {
+    gpdes.begin_i = pageToPDEIndex(vaddr);
+    gpdes.end_i = pageToPDEIndex(vaddr + core_alignUp(size, PAGE_DIR_SHIFT));
+    uint32_t j = 0;
+    uint32_t j_end = core_alignUp(size, PAGE_SHIFT) / PAGE_SIZE;
+    for (uint32_t i = gpdes.begin_i; i < gpdes.end_i; ++i) {
+        uintptr_t frame = pmm_malloc();
+        gpdes.pdes[i].present = true;
+        gpdes.pdes[i].pageTableAddress = frame >> PAGE_SHIFT;
+
+        struct PTE *pageTable = (struct PTE *) frame;
+        initPT(pageTable);
+        for (; j < j_end; ++j) {
+            pageTable[i % PTE_COUNT].present = true;
+            pageTable[i % PTE_COUNT].frameAddress = pmm_malloc() >> PAGE_SHIFT;
+        }
+    }
+}
 
 uintptr_t PageTable_new() {
     struct PDE *const pageDir = (struct PDE *) pmm_malloc();
@@ -164,7 +190,7 @@ uintptr_t PageTable_new() {
     metaPT[pdeIndex + 1].present = true;
     metaPT[pdeIndex + 1].frameAddress = (uintptr_t) metaPT >> PAGE_SHIFT;
 
-    // Initialize identity map for [0, 8MiB)
+    // Initialize identity map for [0, PT_VADDR)
     // We copy page directory entries before the meta
     struct PageTable *idPageTable = (struct PageTable *) pmm_idPageTable();
     for (uint32_t i = 0; i < pdeIndex; ++i) {

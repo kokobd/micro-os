@@ -5,6 +5,7 @@
 
 #include <ram/PMM.h>
 #include <ram/PageTable.h>
+#include <ram/constants.h>
 #include <cpu.h>
 
 static const struct multiboot_tag_mmap *get_tag_mmap(uint32_t multiboot_info) {
@@ -23,8 +24,12 @@ static const struct multiboot_tag_mmap *get_tag_mmap(uint32_t multiboot_info) {
 void main(uint32_t magic_number, uint32_t address) {
     cpu_initialize();
     pmm_init(get_tag_mmap(address));
+    if (pmm_firstFrame() >= PT_VADDR)
+        return;
 
     PageTable_enablePaging();
+    
+    int x = 42;
 
     asm volatile(
     "cli\n"
