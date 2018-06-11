@@ -8,3 +8,7 @@
 #define PAGE_SHIFT 12u
 
 #define KERNEL_STACK_BASE 0x7FFFF
+
+#define PT_VADDR 0x800000
+
+#define PT_SIZE 0x400000

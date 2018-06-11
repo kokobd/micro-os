@@ -9,6 +9,10 @@
 
 static core_BitSet availableFrames;
 
+static uintptr_t firstFrame;
+
+static uintptr_t idPageTable;
+
 static uint64_t maxPAddr(const struct multiboot_mmap_entry *entries, uint32_t entry_count) {
     uint64_t maxValue = 0;
     for (uint32_t i = 0; i != entry_count; ++i) {
@@ -21,18 +25,6 @@ static uint64_t maxPAddr(const struct multiboot_mmap_entry *entries, uint32_t en
     return maxValue - 1;
 }
 
-static bool isMemoryValid(const struct multiboot_mmap_entry *entries, uint32_t entry_count) {
-    for (uint32_t i = 0; i != entry_count; ++i) {
-        if (entries[i].type == MULTIBOOT_MEMORY_AVAILABLE
-            && entries[i].addr == PMM_BEGIN) {
-            if (entries[i].len > (availableFrames.sizeInBits >> 3u)) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 static size_t addressToIndex(uintptr_t paddr) {
     return (paddr - PMM_BEGIN) >> PAGE_SHIFT;
 }
@@ -41,35 +33,60 @@ static uintptr_t indexToAddress(uintptr_t index) {
     return (index << PAGE_SHIFT) + PMM_BEGIN;
 }
 
+static uint64_t firstHighMemoryEnd(const struct multiboot_mmap_entry *entries, uint32_t entry_count) {
+    for (uint32_t i = 0; i < entry_count; ++i) {
+        if (entries[i].addr == PMM_BEGIN) {
+            return entries[i].addr + entries[i].len;
+        }
+    }
+    return PMM_BEGIN;
+}
+
 static bool page_status_init(const struct multiboot_mmap_entry *entries, uint32_t entry_count) {
-    bool valid = isMemoryValid(entries, entry_count);
+    // Calculate static memory usage of the bitset
+    const size_t bitSetSize =
+            core_alignUp(core_BitSet_length(&availableFrames) / 8, PAGE_SHIFT);
+    idPageTable = PMM_BEGIN + bitSetSize;
+    // Calculate static memory usage of the identity mapping
+    // page table
+    const size_t idPTSize =
+            (core_divUp(core_BitSet_length(&availableFrames) - PMM_BEGIN / PAGE_SIZE, 1024)
+             + 1) * PAGE_SIZE;
+    firstFrame = idPageTable + idPTSize;
 
-    if (valid) {
-        availableFrames.data = (uint32_t *) PMM_BEGIN;
-        core_BitSet_init(&availableFrames, false);
+    // Validate that the first high memory block is
+    // sufficient for the bitset and id page table
+    if (firstFrame >= firstHighMemoryEnd(entries, entry_count)) {
+        return false;
+    }
 
-        for (uint32_t i = 0; i != entry_count; ++i) {
-            if (entries[i].type == MULTIBOOT_MEMORY_AVAILABLE
-                && entries[i].addr >= PMM_BEGIN) {
-                size_t from = addressToIndex(core_alignUp((uintptr_t) (entries[i].addr), PAGE_SHIFT));
-                size_t to = addressToIndex(core_alignDown((uintptr_t) (entries[i].addr + entries[i].len), PAGE_SHIFT));
-                for (size_t j = from; j < to; ++j) {
-                    core_BitSet_set(&availableFrames, j, true);
-                }
+    // Init the bitset. It is stored at the
+    // beginning of 1MiB
+    availableFrames.data = (uint32_t *) PMM_BEGIN;
+    core_BitSet_init(&availableFrames, false);
+
+    // Mark detected available frames.
+    for (uint32_t i = 0; i != entry_count; ++i) {
+        if (entries[i].type == MULTIBOOT_MEMORY_AVAILABLE
+            && entries[i].addr >= PMM_BEGIN) {
+            size_t from = addressToIndex(core_alignUp((uintptr_t) (entries[i].addr), PAGE_SHIFT));
+            size_t to = addressToIndex(core_alignDown((uintptr_t) (entries[i].addr + entries[i].len), PAGE_SHIFT));
+            for (size_t j = from; j < to; ++j) {
+                core_BitSet_set(&availableFrames, j, true);
             }
         }
     }
 
-    // Mark frames occupied by meta-info as not available
+    // Mark frames occupied by the bitset and id page table
+    // as not available
     size_t begin = 0;
-    size_t end = core_alignUp(core_BitSet_length(&availableFrames) / 8u, PAGE_SHIFT)
-            >> PAGE_SHIFT;
+    size_t end = (bitSetSize + idPTSize) / PAGE_SIZE;
     while (begin < end) {
         core_BitSet_set(&availableFrames, begin, false);
         ++begin;
     }
 
-    return valid;
+    return true;
 }
 
 bool pmm_init(const struct multiboot_tag_mmap *tag_mmap) {
@@ -100,3 +117,10 @@ void pmm_free(uintptr_t frame) {
     }
 }
 
+uintptr_t pmm_firstFrame() {
+    return firstFrame;
+}
+
+uintptr_t pmm_idPageTable() {
+    return idPageTable;
+}

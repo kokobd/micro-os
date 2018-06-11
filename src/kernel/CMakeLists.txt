@@ -13,6 +13,8 @@ add_executable(kernel
         include/ram/PMM.h
         src/ram/PMM.c
         include/ram/constants.h
+        include/ram/PageTable.h
+        src/ram/PageTable.c
 
         include/cpu.h
         src/cpu/cpu.c

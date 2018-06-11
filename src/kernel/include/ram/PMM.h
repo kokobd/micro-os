@@ -20,3 +20,7 @@ uintptr_t pmm_malloc();
  * Free a page frame
  */
 void pmm_free(uintptr_t frame);
+
+uintptr_t pmm_firstFrame();
+
+uintptr_t pmm_idPageTable();
