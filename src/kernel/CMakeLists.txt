@@ -27,12 +27,22 @@ add_executable(kernel
         include/cpu/interrupt.h
         src/cpu/int.h
         include/cpu/RegState.h
+        src/cpu/RegState.c
         src/cpu/IDT.h
         src/cpu/IDT.c
 
         src/syscall.c
         src/irq.c
         src/exception.c
+
+        include/process/MessageBox.h
+        src/process/MessageBox.c
+        include/process/Process.h
+        src/process/Process.c
+        include/process/scheduler.h
+        src/process/scheduler.c
+        src/process/ProcessQueue.h
+        src/process/ProcessQueue.c
         )
 target_include_directories(kernel
         PRIVATE include

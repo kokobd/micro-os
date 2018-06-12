@@ -28,5 +28,6 @@ typedef struct {
     uint32_t esp;
     uint16_t ss;
     uint16_t null5;
-} cpu_RegState;
+} RegState;
 
+void RegState_init(RegState *regState);

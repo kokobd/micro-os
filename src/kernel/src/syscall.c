@@ -1,6 +1,6 @@
 #include <cpu/interrupt.h>
 
-void cpu_syscallHandler(cpu_RegState *regState) {
+void cpu_syscallHandler(RegState *regState) {
     asm volatile ("nop");
     // TODO
 }
