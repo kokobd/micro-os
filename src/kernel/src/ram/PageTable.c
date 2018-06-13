@@ -259,13 +259,15 @@ enum PageAttr PageTable_getAttr(uintptr_t vaddr) {
 
 void PageTable_clearMapping(
         uintptr_t vaddr) {
-    uint32_t meta_pde_i = pageToPDEIndex(PT_VADDR);
-    struct PTE *first_pte_meta = currentPageTable()->pageTables[meta_pde_i];
-    for (struct PTE *pte = first_pte_meta; pte != first_pte_meta + PTE_COUNT; ++pte) {
-        if (pte->present) {
-            pmm_free(pte->frameAddress << PAGE_SHIFT);
-        }
+    if (currentPageTable()->pageDirectory[pageToPDEIndex(vaddr)].present) {
+        struct PTE *pte = pageToPTE(vaddr);
+        pte->present = false;
+        pte->frameAddress = 0;
     }
+
+    // If the page containing this PTE doesn't have
+    // any present pte, we should mark that page
+    // as non-present in the meta page.
 }
 
 void PageTable_switchTo(uintptr_t rootFrame) {
@@ -286,4 +288,23 @@ void PageTable_refresh() {
     "mov cr3, eax"
     : : : "eax"
     );
+}
+
+void PageTable_free() {
+    const uintptr_t rootFrame = metaPT()[0].frameAddress;
+    uint32_t metaPT_pde_i = pageToPDEIndex(PT_VADDR);
+    struct PDE *metaPT_pde = currentPageTable()->pageDirectory + metaPT_pde_i;
+    uintptr_t metaFrame = metaPT_pde->pageTableAddress << PAGE_SHIFT;
+    for (uint32_t i = 1; i < PTE_COUNT; ++i) {
+        if (metaPT()[i].present) {
+            uintptr_t frame = metaPT()[i].frameAddress << PAGE_SHIFT;
+            if (i != metaPT_pde_i + 1) {
+                pmm_free(frame);
+            }
+        }
+    }
+    pmm_free(rootFrame);
+    pmm_free(metaFrame);
+
+    PageTable_switchToID();
 }

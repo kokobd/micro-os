@@ -35,5 +35,5 @@ struct Process *getByID(ProcID id) {
 
 static void restoreProcess(struct Process *process, RegState *regState) {
     *regState = process->regState;
-    Proc_switchPageTable(process);
+    Process_applyPageTable(process);
 }

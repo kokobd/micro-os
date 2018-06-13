@@ -13,3 +13,11 @@
 #define PT_VADDR 0x800000
 
 #define PT_SIZE 0x400000
+
+#define MiB 0x100000u
+
+#define PROC_BEGIN (128u * MiB)
+
+#define PROC_STACK_BASE (512u * MiB)
+
+#define PROC_STACK_SIZE (2u * MiB)

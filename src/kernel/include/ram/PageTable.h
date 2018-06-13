@@ -20,6 +20,12 @@ void PageTable_allocateGlobally(uintptr_t vaddr, size_t size);
  */
 uintptr_t PageTable_new();
 
+/**
+ * Destruct current page table and switch to ID page table.
+ * This function will NOT release page frames passed in with 'setMapping'.
+ */
+void PageTable_free();
+
 void PageTable_switchTo(uintptr_t rootFrame);
 
 void PageTable_switchToID();

@@ -44,4 +44,20 @@ struct Process {
     struct ProcStatus status;
 };
 
-void Proc_switchPageTable(struct Process *process);
+void Process_applyPageTable(struct Process *process);
+
+/**
+ * Create a process with a memory image.
+ */
+void Process_createWithImage(struct Process *process, uintptr_t imagePAddr,
+                             size_t imageSize, size_t requestedSize,
+                             uintptr_t entryPoint);
+
+void Process_copy(struct Process *dest, struct Process *src);
+
+/**
+ * Destructs a process and switch to Identity PageTable.
+ * After calling this function, the pointer should be considered as invalid.
+ * @param process pointer to the process.
+ */
+void Process_exit(struct Process *process);
