@@ -46,7 +46,7 @@ void MB_moveData(struct MessageBox *mb, void *newLocation) {
     memcpy(newLocation, mb->data, MB_sizeInBytes(mb));
 }
 
-uint8_t length(struct MessageBox *mb) {
+uint8_t length(const struct MessageBox *mb) {
     if (MB_isEmpty(mb)) {
         return 0;
     }

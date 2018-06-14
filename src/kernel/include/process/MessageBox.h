@@ -14,11 +14,15 @@ struct MessageBox {
 
 void MB_init(struct MessageBox *mb, uint8_t msgSize, uint8_t msgMaxNum);
 
-inline static uint8_t MB_msgSize(struct MessageBox *mb) {
+inline static void MB_initInvalid(struct MessageBox *mb) {
+    mb->msgSize = 0;
+}
+
+inline static uint8_t MB_msgSize(const struct MessageBox *mb) {
     return mb->msgSize;
 }
 
-inline static uint8_t MB_msgMaxNum(struct MessageBox *mb) {
+inline static uint8_t MB_msgMaxNum(const struct MessageBox *mb) {
     return mb->msgMaxNum;
 }
 
@@ -34,9 +38,12 @@ void MB_pop(struct MessageBox *mb, void *buffer);
 
 void MB_moveData(struct MessageBox *mb, void *newLocation);
 
-inline static size_t MB_sizeInBytes(struct MessageBox *mb) {
+inline static size_t MB_sizeInBytes(const struct MessageBox *mb) {
     return (size_t) MB_msgSize(mb) * MB_msgMaxNum(mb);
 }
 
-uint8_t length(struct MessageBox *mb);
+uint8_t length(const struct MessageBox *mb);
 
+inline static bool MB_isValid(const struct MessageBox *mb) {
+    return mb->msgSize != 0;
+}

@@ -4,6 +4,7 @@
 #include <ram/PMM.h>
 #include <core/utility.h>
 #include <string.h>
+#include <ram/PMStat.h>
 
 void Process_applyPageTable(struct Process *process) {
     uintptr_t root = process->pageTableRoot;
@@ -43,6 +44,8 @@ static bool increaseProgramBreak(uintptr_t *pb_p, size_t size) {
                 }
                 return false;
             }
+            PMStat_setPolicy(frame, SP_NONE);
+            PMStat_setProcessCount(frame, 1);
             PageTable_setMapping(page, frame);
         }
         *pb_p = pb_new;
@@ -52,31 +55,59 @@ static bool increaseProgramBreak(uintptr_t *pb_p, size_t size) {
     }
 }
 
-static bool decreaseProgramBreak(uintptr_t *pb_p, size_t size) {
-    const uintptr_t pb = *pb_p;
+static void releaseFrame(uintptr_t frame) {
+    PMStat_decrease(frame);
+    if (PMStat_getProcessCount(frame) == 0) {
+        pmm_free(frame);
+    }
+}
+
+inline static bool hasIntersection(uintptr_t a_beg, uintptr_t a_end, uintptr_t b_beg, uintptr_t b_end) {
+    return !(a_end <= b_beg || b_end <= a_beg);
+}
+
+static bool hasMessageBox(const struct MessageBox *msgBoxes, size_t count, uintptr_t beg, uintptr_t end) {
+    for (size_t i = 0; i < count; ++i) {
+        const struct MessageBox *msgBox = msgBoxes + i;
+        if (MB_isValid(msgBox)) {
+            if (hasIntersection(beg, end,
+                                (uintptr_t) msgBoxes->data,
+                                (uintptr_t) (msgBox->data + MB_sizeInBytes(msgBox)))) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool decreaseProgramBreak(struct Process *process, size_t size) {
+    const uintptr_t pb = process->programBreak;
     const uintptr_t pb_page = core_alignDown(pb, PAGE_SHIFT);
     const uintptr_t pb_new = pb - size;
     const uintptr_t pb_page_new = core_alignDown(pb_new, PAGE_SHIFT);
 
-    bool valid = false;
-    switch (checkAddress(pb, pb_new)) {
-        case CODE_HEAP:
-            valid = true;
-            break;
-        default:
-            break;
-    }
+    bool valid = true;
+    if (checkAddress(pb, pb_new) != CODE_HEAP)
+        valid = false;
+    if (hasMessageBox(process->msgBoxes, MSGBOX_LIMIT, pb_new, pb))
+        valid = false;
 
     if (valid) {
         for (uintptr_t page = pb_page; page > pb_page_new; page -= PAGE_SIZE) {
             uintptr_t frame = PageTable_getMapping(page);
-            pmm_free(frame);
+            releaseFrame(frame);
             PageTable_clearMapping(page);
         }
-        *pb_p = pb_new;
+        process->programBreak = pb_new;
     }
 
     return valid;
+}
+
+static void initMsgBoxesInvalid(struct MessageBox *msgBoxes, size_t count) {
+    for (size_t i = 0; i < count; ++i) {
+        MB_initInvalid(msgBoxes + i);
+    }
 }
 
 void Process_createWithImage(struct Process *process, uintptr_t imagePAddr,
@@ -94,6 +125,8 @@ void Process_createWithImage(struct Process *process, uintptr_t imagePAddr,
     process->regState.eip = entryPoint;
     process->regState.esp = PROC_STACK_BASE;
     process->regState.ebp = PROC_STACK_BASE;
+
+    initMsgBoxesInvalid(process->msgBoxes, MSGBOX_LIMIT);
 }
 
 static void releaseStackMem() {
@@ -102,7 +135,7 @@ static void releaseStackMem() {
         uintptr_t frame = PageTable_getMapping(page);
         if (frame != 0) {
             PageTable_clearMapping(page);
-            pmm_free(frame);
+            releaseFrame(frame);
         }
     }
 }
@@ -110,9 +143,20 @@ static void releaseStackMem() {
 void Process_exit(struct Process *process) {
     PageTable_switchTo(process->pageTableRoot);
     // release code and heap
-    decreaseProgramBreak(&process->programBreak, process->programBreak - PROC_BEGIN);
+    decreaseProgramBreak(process, process->programBreak - PROC_BEGIN);
     // release stack
     releaseStackMem();
 
     PageTable_free();
+}
+
+void Process_fork(struct Process *parent, struct Process *child) {
+    child->regState = parent->regState;
+    child->programBreak = parent->programBreak;
+    child->status = parent->status;
+    initMsgBoxesInvalid(child->msgBoxes, MSGBOX_LIMIT);
+
+    // Copy the page table. Employ copy on write strategy.
+    PageTable_switchToID();
+    // TODO
 }

@@ -53,7 +53,16 @@ void Process_createWithImage(struct Process *process, uintptr_t imagePAddr,
                              size_t imageSize, size_t requestedSize,
                              uintptr_t entryPoint);
 
-void Process_copy(struct Process *dest, struct Process *src);
+/**
+ * Copy process src to dest. COW strategy will be employed.
+ * 'child' is assumed to be uninitialized. The child process
+ * will have the same register state, a copy of the page table,
+ * the same program break, invalid message boxes, and the same
+ * ProcStatus
+ * @param parent pointer to the parent process
+ * @param child pointer to the child process
+ */
+void Process_fork(struct Process *parent, struct Process *child);
 
 /**
  * Destructs a process and switch to Identity PageTable.
