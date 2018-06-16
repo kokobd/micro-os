@@ -27,12 +27,12 @@ static enum ProcMemRegion checkAddress(uintptr_t programBreak, uintptr_t address
 }
 
 static bool increaseProgramBreak(uintptr_t *pb_p, size_t size) {
-    const uintptr_t pb = *pb_p;
+    const uintptr_t pb      = *pb_p;
     const uintptr_t pb_page = core_alignDown(pb, PAGE_SHIFT);
-    const uintptr_t pb_new = pb + size;
+    const uintptr_t pb_new  = pb + size;
     if (pb < PROC_STACK_BASE - PROC_STACK_SIZE) {
         const uintptr_t pb_page_new = core_alignDown(pb, PAGE_SHIFT);
-        for (uintptr_t page = pb_page + PAGE_SIZE; page <= pb_page_new; page += PAGE_SIZE) {
+        for (uintptr_t  page        = pb_page + PAGE_SIZE; page <= pb_page_new; page += PAGE_SIZE) {
             uintptr_t frame = pmm_malloc();
             if (frame == 0) {
                 // Allocation failed, we need to free all previously allocated frames.
@@ -81,12 +81,12 @@ static bool hasMessageBox(const struct MessageBox *msgBoxes, size_t count, uintp
 }
 
 static bool decreaseProgramBreak(struct Process *process, size_t size) {
-    const uintptr_t pb = process->programBreak;
-    const uintptr_t pb_page = core_alignDown(pb, PAGE_SHIFT);
-    const uintptr_t pb_new = pb - size;
+    const uintptr_t pb          = process->programBreak;
+    const uintptr_t pb_page     = core_alignDown(pb, PAGE_SHIFT);
+    const uintptr_t pb_new      = pb - size;
     const uintptr_t pb_page_new = core_alignDown(pb_new, PAGE_SHIFT);
 
-    bool valid = true;
+    bool            valid       = true;
     if (checkAddress(pb, pb_new) != CODE_HEAP)
         valid = false;
     if (hasMessageBox(process->msgBoxes, MSGBOX_LIMIT, pb_new, pb))
@@ -151,12 +151,35 @@ void Process_exit(struct Process *process) {
 }
 
 void Process_fork(struct Process *parent, struct Process *child) {
-    child->regState = parent->regState;
+    child->regState     = parent->regState;
     child->programBreak = parent->programBreak;
-    child->status = parent->status;
+    child->status       = parent->status;
     initMsgBoxesInvalid(child->msgBoxes, MSGBOX_LIMIT);
 
     // Copy the page table. Employ copy on write strategy.
     PageTable_switchToID();
     // TODO
+}
+
+struct MessageBox *Process_msgBox(struct Process *process, int msgBoxID) {
+    if (msgBoxID < 0 || msgBoxID >= MSGBOX_LIMIT) {
+        return NULL;
+    }
+    return process->msgBoxes + msgBoxID;
+}
+
+bool Process_ownMemory(struct Process *process, uintptr_t begin, size_t size) {
+    bool ret = true;
+    PageTable_with(process->pageTableRoot, {
+        uintptr_t begin = core_alignDown(begin, PAGE_SHIFT);
+        uintptr_t end   = core_alignUp(begin + size, PAGE_SHIFT);
+
+        for (uintptr_t page = begin; page < end; page += PAGE_SIZE) {
+            if (PageTable_getMapping(page) == 0) {
+                ret = false;
+                break;
+            }
+        }
+    });
+    return ret;
 }

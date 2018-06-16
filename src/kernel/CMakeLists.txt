@@ -43,6 +43,8 @@ add_executable(kernel
         src/process/scheduler.c
         src/process/ProcessQueue.h
         src/process/ProcessQueue.c
+        src/process/syscall.c
+        include/process/syscall.h
         )
 target_include_directories(kernel
         PRIVATE include

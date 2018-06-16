@@ -63,10 +63,11 @@ uint8_t length(const struct MessageBox *mb) {
     return MB_msgMaxNum(mb) - (mb->head - mb->tail - (uint8_t) 1);
 }
 
-void MB_init(struct MessageBox *mb, uint8_t msgSize, uint8_t msgMaxNum) {
-    mb->head = 0;
-    mb->tail = msgMaxNum;
-    mb->msgSize = msgSize;
+void MB_init(struct MessageBox *mb, uint8_t msgSize, uint8_t msgMaxNum, void *data) {
+    mb->head      = 0;
+    mb->tail      = msgMaxNum;
+    mb->msgSize   = msgSize;
     mb->msgMaxNum = msgMaxNum;
+    mb->data      = data;
 }
 

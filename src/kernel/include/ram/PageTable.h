@@ -46,8 +46,8 @@ bool PageTable_setMapping(
 uintptr_t PageTable_getMapping(uintptr_t vaddr);
 
 enum PageAttr {
-    PA_NONE = 0,
-    PA_WRITABLE = 0b01,
+    PA_NONE      = 0,
+    PA_WRITABLE  = 0b01,
     PA_USER_MODE = 0b10
 };
 
@@ -67,3 +67,12 @@ enum PageAttr PageTable_getAttr(uintptr_t vaddr);
 void PageTable_clearMapping(
         uintptr_t vaddr);
 
+uintptr_t PageTable_currentRoot();
+
+#define PageTable_with(pageTable, CODE)\
+do {\
+    uintptr_t curPTRoot = PageTable_currentRoot();\
+    PageTable_switchTo((pageTable));\
+    CODE\
+    PageTable_switchTo(curPTRoot);\
+} while (0)

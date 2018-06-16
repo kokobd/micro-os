@@ -3,8 +3,8 @@
 #include "ProcessQueue.h"
 
 struct Scheduler {
-    struct Process processes[PROC_ID_COUNT];
-    ProcID current;
+    struct Process      processes[PROC_ID_COUNT];
+    ProcID              current;
     struct ProcessQueue ready;
 };
 
@@ -36,4 +36,8 @@ struct Process *getByID(ProcID id) {
 static void restoreProcess(struct Process *process, RegState *regState) {
     *regState = process->regState;
     Process_applyPageTable(process);
+}
+
+struct Process *currentProcess() {
+    return getByID(scheduler.current);
 }

@@ -12,7 +12,7 @@ struct MessageBox {
     uint8_t *data; // where the messages are stored
 };
 
-void MB_init(struct MessageBox *mb, uint8_t msgSize, uint8_t msgMaxNum);
+void MB_init(struct MessageBox *mb, uint8_t msgSize, uint8_t msgMaxNum, void *data);
 
 inline static void MB_initInvalid(struct MessageBox *mb) {
     mb->msgSize = 0;
