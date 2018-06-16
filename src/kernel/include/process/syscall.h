@@ -18,3 +18,7 @@ struct MsgBoxInfo {
 };
 
 enum MsgBoxError initMsgBox(int id, const struct MsgBoxInfo *);
+
+enum MsgBoxError recvMsgFrom(int id, void *buffer);
+
+enum MsgBoxError recvAnyMsg(void *buffer);

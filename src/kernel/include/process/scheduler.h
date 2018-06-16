@@ -1,5 +1,23 @@
 #include <cpu/RegState.h>
+#include "Process.h"
 
 void schedule(RegState *regState);
 
 struct Process *currentProcess();
+
+void restoreCurrentProcess(RegState *regState);
+
+/**
+ * Blocks current process. The process will
+ * wait until a message is sent to the message box
+ * with given id.
+ * @param msgBoxID ID of the message box to wait.
+ */
+void wait(uint8_t msgBoxID);
+
+/**
+ * Notify a specific process. (The process may not execute immediately,
+ * it will be pushed to the ready queue.)
+ * @param procID ID of the process to notify.
+ */
+void notify(ProcID procID);

@@ -14,6 +14,19 @@ static struct Process *getByID(ProcID id);
 
 static void restoreProcess(struct Process *process, RegState *regState);
 
+/**
+ * Find next ready process and set it as
+ * the current process. This function doesn't
+ * copy register state or apply page table.
+ */
+static void executeNextProcess() {
+    if (PQ_isEmpty(&scheduler.ready)) {
+        // What should we do?
+    } else {
+        scheduler.current = PQ_pop(&scheduler.ready);
+    }
+}
+
 void schedule(RegState *regState) {
     if (scheduler.current == PROC_ID_NULL) {
         if (PQ_isEmpty(&scheduler.ready)) {
@@ -23,7 +36,7 @@ void schedule(RegState *regState) {
         }
     } else {
         ProcID prev = scheduler.current;
-        scheduler.current = PQ_pop(&scheduler.ready);
+        executeNextProcess();
         PQ_push(&scheduler.ready, prev);
     }
     restoreProcess(getByID(scheduler.current), regState);
@@ -40,4 +53,27 @@ static void restoreProcess(struct Process *process, RegState *regState) {
 
 struct Process *currentProcess() {
     return getByID(scheduler.current);
+}
+
+void restoreCurrentProcess(RegState *regState) {
+    restoreProcess(currentProcess(), regState);
+}
+
+void wait(uint8_t msgBoxID) {
+    struct Process *current = currentProcess();
+
+    if (msgBoxID != MSGBOX_LIMIT) {
+        current->status.type  = PS_WAITING;
+        current->status.boxId = msgBoxID;
+    } else {
+        current->status.type = PS_WAITING_ANY;
+    }
+
+    executeNextProcess();
+}
+
+void notify(ProcID procID) {
+    struct Process *process = getByID(procID);
+    process->status.type = PS_READY;
+    PQ_push(&scheduler.ready, procID);
 }
