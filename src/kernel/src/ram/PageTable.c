@@ -2,6 +2,7 @@
 #include <ram/PMM.h>
 #include <ram/constants.h>
 #include <core/utility.h>
+#include <string.h>
 
 struct PDE {
     bool     present:1;
@@ -147,6 +148,7 @@ void PageTable_enablePaging() {
     }
 }
 
+// We don't use this for now.
 struct GlobalPageDirEntries {
     uint32_t   begin_i;
     uint32_t   end_i;
@@ -196,6 +198,37 @@ uintptr_t PageTable_new() {
     for (uint32_t    i            = 0; i < pdeIndex; ++i) {
         pageDir[i] = idPageTable->pageDirectory[i];
     }
+    return (uintptr_t) pageDir;
+}
+
+uintptr_t PageTable_copy(uintptr_t srcPD) {
+    uintptr_t newPD = PageTable_new();
+
+    struct PDE *srcPD_ = (struct PDE *) srcPD;
+    struct PDE *newPD_ = (struct PDE *) newPD;
+
+    const uint32_t meta_pde_i = pageToPDEIndex(PT_VADDR);
+
+    for (uint32_t i = 0; i != PDE_COUNT; ++i) {
+        if (i == pageToPDEIndex(PT_VADDR))
+            continue;
+        if (i >= gpdes.begin_i && i < gpdes.end_i || i < meta_pde_i) {
+            newPD_[i] = srcPD_[i];
+        } else {
+            if (srcPD_[i].present) {
+                newPD_[i] = srcPD_[i];
+                uintptr_t ptFrame = pmm_malloc();
+                newPD_[i].pageTableAddress = ptFrame;
+
+                // copy the page table
+                struct PTE *pt_dest = (struct PTE *) ptFrame;
+                struct PTE *pt_src  = (struct PTE *) srcPD_[i].pageTableAddress;
+                memcpy(pt_dest, pt_src, PAGE_SIZE);
+            }
+        }
+    }
+
+    return newPD;
 }
 
 bool PageTable_setMapping(
@@ -239,7 +272,7 @@ uintptr_t PageTable_getMapping(uintptr_t vaddr) {
 #define attrHas(ATTR, attr) \
     ((bool) ((attr) & (uint32_t) (ATTR)))
 
-bool PageTable_setAttr(
+void PageTable_setAttr(
         uintptr_t vaddr,
         enum PageAttr attr) {
     struct PTE *pte = pageToPTE(vaddr);
@@ -255,6 +288,12 @@ enum PageAttr PageTable_getAttr(uintptr_t vaddr) {
     if (pte->userMode)
         result |= PA_USER_MODE;
     return result;
+}
+
+void PageTable_removeAttr(uintptr_t page, enum PageAttr attr) {
+    enum PageAttr prevAttr = PageTable_getAttr(page);
+    PageTable_setAttr(page, (enum PageAttr)
+            ((uint32_t) prevAttr & (~(uint32_t) attr)));
 }
 
 void PageTable_clearMapping(

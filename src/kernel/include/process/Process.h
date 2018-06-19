@@ -18,7 +18,7 @@
 typedef uint8_t ProcID;
 
 enum ProcStatusType {
-    PS_READY, PS_WAITING, PS_WAITING_ANY
+    PS_READY, PS_WAITING, PS_WAITING_ANY, PS_INVALID
 };
 
 struct ProcStatus {

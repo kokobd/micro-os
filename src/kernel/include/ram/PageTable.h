@@ -7,6 +7,7 @@
 void PageTable_enablePaging();
 
 /**
+ * (Not implemented, do NOT use)
  * Subsequently created page tables will have a shared, writable,
  * kernel-mode memory region. Note that it won't present in ID map.
  * @param vaddr must be aligned to 4MiB boundary
@@ -19,6 +20,13 @@ void PageTable_allocateGlobally(uintptr_t vaddr, size_t size);
  * @return Root frame of the newly created page table
  */
 uintptr_t PageTable_new();
+
+/**
+ * Precondition: Identity mapping is in effect.
+ * @param srcPD physical address of the page directory table
+ * @return page directory table of the newly created page table.
+ */
+uintptr_t PageTable_copy(uintptr_t srcPD);
 
 /**
  * Destruct current page table and switch to ID page table.
@@ -54,11 +62,13 @@ enum PageAttr {
 /**
  * Set a page's attribute. See PageTable_setMapping.
  */
-bool PageTable_setAttr(
+void PageTable_setAttr(
         uintptr_t vaddr,
         enum PageAttr attr);
 
 enum PageAttr PageTable_getAttr(uintptr_t vaddr);
+
+void PageTable_removeAttr(uintptr_t page, enum PageAttr attr);
 
 /**
  * Remove a page

@@ -1,9 +1,13 @@
 #include <cpu/RegState.h>
 #include "Process.h"
 
+void initScheduler();
+
 void schedule(RegState *regState);
 
 struct Process *currentProcess();
+
+ProcID currentPID();
 
 void restoreCurrentProcess(RegState *regState);
 
@@ -21,3 +25,7 @@ void wait(uint8_t msgBoxID);
  * @param procID ID of the process to notify.
  */
 void notify(ProcID procID);
+
+struct Process *getProcessByID(ProcID id);
+
+ProcID forkProcess(ProcID parentID);

@@ -25,8 +25,9 @@ struct Packet {
 
 ```C
 enum SendError {
-  NO_ERROR           = 0,
-  DEST_NOT_REACHABLE = 1,
-  DEST_TOO_BUSY      = 2
+  SE_NO_ERROR           = 0,
+  SE_DEST_NOT_REACHABLE = 1,
+  SE_DEST_TOO_BUSY      = 2,
+  SE_INVALID_ARGS       = 3
 };
 ```

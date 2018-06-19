@@ -1,6 +1,7 @@
 #include <process/Process.h>
 #include <process/scheduler.h>
 #include <process/syscall.h>
+#include <cpu/RegState.h>
 
 int maxMsgBoxId() {
     return MSGBOX_LIMIT - 1;
@@ -76,4 +77,78 @@ enum MsgBoxError recvAnyMsg(void *buffer) {
         MB_pop(msgBox, buffer);
     }
     return MBE_NO_ERROR;
+}
+
+enum MsgBoxError closeMsgBox(int id) {
+    struct Process    *current = currentProcess();
+    struct MessageBox *msgBox  = Process_msgBox(current, id);
+    if (msgBox == NULL) {
+        return MBE_INVALID_ID;
+    }
+    MB_initInvalid(msgBox);
+    return MBE_NO_ERROR;
+}
+
+enum MsgBoxError moveMsgBox(int id, void *newLocation) {
+    struct Process    *current = currentProcess();
+    struct MessageBox *msgBox  = Process_msgBox(current, id);
+    if (msgBox == NULL) {
+        return MBE_INVALID_ID;
+    }
+
+    if (!MB_isValid(msgBox)) {
+        return MBE_NOT_INITIALIZED;
+    }
+
+    if (!Process_ownMemory(current, (uintptr_t) newLocation, MB_sizeInBytes(msgBox))) {
+        return MBE_INVALID_ARGS;
+    }
+
+    MB_moveData(msgBox, newLocation);
+    return MBE_NO_ERROR;
+}
+
+enum SendError sendPacket(const struct Packet *packet) {
+    struct Process *current = currentProcess();
+
+    if (!Process_ownMemory(current, (uintptr_t) packet, sizeof(struct Packet))) {
+        return SE_INVALID_ARGS;
+    }
+
+    struct Process *destProcess = getProcessByID((ProcID) packet->pid);
+    if (destProcess == NULL) {
+        return SE_DEST_NOT_REACHABLE;
+    }
+    struct MessageBox *msgBox = Process_msgBox(destProcess, packet->msgBoxId);
+    if (msgBox == NULL || !MB_isValid(msgBox)) {
+        return SE_DEST_NOT_REACHABLE;
+    }
+
+    if (MB_isFull(msgBox)) {
+        return SE_DEST_TOO_BUSY;
+    }
+
+    if (!Process_ownMemory(current, (uintptr_t) packet->message, MB_msgSize(msgBox))) {
+        return SE_INVALID_ARGS;
+    }
+
+    MB_push(msgBox, packet->message);
+    if (destProcess->status.type == PS_WAITING) {
+        if (destProcess->status.boxId == packet->msgBoxId) {
+            void *buffer = (void *) destProcess->regState.ebx;
+            MB_pop(msgBox, buffer);
+        }
+    } else if (destProcess->status.type == PS_WAITING_ANY) {
+        void *buffer = (void *) destProcess->regState.eax;
+        MB_pop(msgBox, buffer);
+    }
+    destProcess->status.type = PS_READY;
+
+    return SE_NO_ERROR;
+}
+
+ProcID fork() {
+    ProcID childID = forkProcess(currentPID());
+    getProcessByID(childID)->regState.eax = 0;
+    return childID;
 }

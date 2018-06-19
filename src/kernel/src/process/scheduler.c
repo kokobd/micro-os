@@ -1,5 +1,6 @@
 #include <process/scheduler.h>
 #include <process/Process.h>
+#include <cpu/RegState.h>
 #include "ProcessQueue.h"
 
 struct Scheduler {
@@ -25,6 +26,16 @@ static void executeNextProcess() {
     } else {
         scheduler.current = PQ_pop(&scheduler.ready);
     }
+}
+
+static ProcID newPID() {
+    for (ProcID id = PROC_ID_MIN; id <= PROC_ID_MAX; ++id) {
+        struct Process *process = getByID(id);
+        if (process->status.type == PS_INVALID) {
+            return id;
+        }
+    }
+    return PROC_ID_NULL;
 }
 
 void schedule(RegState *regState) {
@@ -76,4 +87,35 @@ void notify(ProcID procID) {
     struct Process *process = getByID(procID);
     process->status.type = PS_READY;
     PQ_push(&scheduler.ready, procID);
+}
+
+struct Process *getProcessByID(ProcID id) {
+    if (id <= PROC_ID_MAX && id >= PROC_ID_MIN) {
+        return getByID(id);
+    } else {
+        return NULL;
+    }
+}
+
+ProcID forkProcess(ProcID parentID) {
+    ProcID childID = newPID();
+    if (childID == PROC_ID_NULL) {
+        return childID;
+    }
+    struct Process *parent = getByID(parentID);
+    struct Process *child  = getByID(childID);
+    Process_fork(parent, child);
+    return childID;
+}
+
+ProcID currentPID() {
+    return scheduler.current;
+}
+
+void initScheduler() {
+    scheduler.current = PROC_ID_NULL;
+    PQ_init(&scheduler.ready);
+    for (ProcID id    = PROC_ID_MIN; id <= PROC_ID_MAX; ++id) {
+        getByID(id)->status.type = PS_INVALID;
+    }
 }

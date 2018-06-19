@@ -156,9 +156,39 @@ void Process_fork(struct Process *parent, struct Process *child) {
     child->status       = parent->status;
     initMsgBoxesInvalid(child->msgBoxes, MSGBOX_LIMIT);
 
+    uintptr_t prevPT = PageTable_currentRoot();
     // Copy the page table. Employ copy on write strategy.
     PageTable_switchToID();
-    // TODO
+    child->pageTableRoot = PageTable_copy(parent->pageTableRoot);
+    PageTable_switchTo(child->pageTableRoot);
+    uintptr_t heapEnd = core_alignUp(child->programBreak, PAGE_SHIFT);
+
+    for (uintptr_t page = PROC_BEGIN; page < PROC_STACK_BASE;
+         page += PAGE_SIZE) {
+        if (page == heapEnd) {
+            page = PROC_STACK_BASE - PROC_STACK_SIZE;
+        }
+        uintptr_t frame = PageTable_getMapping(page);
+        if (frame == 0)
+            continue;
+        enum SharePolicy frameSP = PMStat_getPolicy(frame);
+
+        if (frameSP == SP_NONE) {
+            frameSP = SP_COW;
+            PMStat_setPolicy(frame, frameSP);
+        }
+        PMStat_increase(frame);
+        PageTable_setMapping(page, frame);
+
+        if (frameSP == SP_COW) {
+            // Set the page as readonly.
+            PageTable_removeAttr(page, PA_WRITABLE);
+            PageTable_with(parent->pageTableRoot, {
+                PageTable_removeAttr(page, PA_WRITABLE);
+            });
+        }
+    }
+    PageTable_switchTo(prevPT);
 }
 
 struct MessageBox *Process_msgBox(struct Process *process, int msgBoxID) {
@@ -170,12 +200,14 @@ struct MessageBox *Process_msgBox(struct Process *process, int msgBoxID) {
 
 bool Process_ownMemory(struct Process *process, uintptr_t begin, size_t size) {
     bool ret = true;
+
     PageTable_with(process->pageTableRoot, {
         uintptr_t begin = core_alignDown(begin, PAGE_SHIFT);
         uintptr_t end   = core_alignUp(begin + size, PAGE_SHIFT);
 
         for (uintptr_t page = begin; page < end; page += PAGE_SIZE) {
-            if (PageTable_getMapping(page) == 0) {
+            if (PageTable_getMapping(page) == 0 ||
+                PageTable_getAttr(page) & PA_USER_MODE == 0) {
                 ret = false;
                 break;
             }
