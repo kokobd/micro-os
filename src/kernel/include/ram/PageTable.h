@@ -4,10 +4,12 @@
 #include <stdint.h>
 #include <stddef.h>
 
+/**
+ * Enable paging and apply the identity mapping page table.
+ */
 void PageTable_enablePaging();
 
 /**
- * (Not implemented, do NOT use)
  * Subsequently created page tables will have a shared, writable,
  * kernel-mode memory region. Note that it won't present in ID map.
  * @param vaddr must be aligned to 4MiB boundary

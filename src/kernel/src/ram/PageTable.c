@@ -158,18 +158,22 @@ struct GlobalPageDirEntries {
 static struct GlobalPageDirEntries gpdes;
 
 void PageTable_allocateGlobally(uintptr_t vaddr, size_t size) {
-    gpdes.begin_i       = pageToPDEIndex(vaddr);
-    gpdes.end_i         = pageToPDEIndex(vaddr + core_alignUp(size, PAGE_DIR_SHIFT));
-    uint32_t      j     = 0;
-    uint32_t      j_end = core_alignUp(size, PAGE_SHIFT) / PAGE_SIZE;
-    for (uint32_t i     = gpdes.begin_i; i < gpdes.end_i; ++i) {
+    gpdes.begin_i  = pageToPDEIndex(vaddr);
+    gpdes.end_i    = pageToPDEIndex(vaddr + core_alignUp(size, PAGE_DIR_SHIFT));
+    uint32_t j_end = core_alignUp(size, PAGE_SHIFT) / PAGE_SIZE;
+
+    for (uint32_t i = gpdes.begin_i; i < gpdes.end_i; ++i) {
         uintptr_t frame = pmm_malloc();
         gpdes.pdes[i].present          = true;
         gpdes.pdes[i].pageTableAddress = frame >> PAGE_SHIFT;
 
         struct PTE *pageTable = (struct PTE *) frame;
         initPT(pageTable);
-        for (; j < j_end; ++j) {
+
+        if (i == gpdes.end_i - 1) { // last page table
+            j_end = (core_alignUp(size, PAGE_SHIFT) / PAGE_SIZE) % PDE_COUNT;
+        }
+        for (uint32_t j = 0; j < j_end; ++j) {
             pageTable[i % PTE_COUNT].present      = true;
             pageTable[i % PTE_COUNT].frameAddress = pmm_malloc() >> PAGE_SHIFT;
         }
@@ -192,10 +196,16 @@ uintptr_t PageTable_new() {
     metaPT[pdeIndex + 1].present       = true;
     metaPT[pdeIndex + 1].frameAddress  = (uintptr_t) metaPT >> PAGE_SHIFT;
 
+    // Copy global page table entries
+    memcpy(pageDir + gpdes.begin_i,
+           gpdes.pdes + gpdes.begin_i,
+           sizeof(struct PDE) * (gpdes.end_i - gpdes.begin_i));
+
     // Initialize identity map for [0, PT_VADDR)
     // We copy page directory entries before the meta
     struct PageTable *idPageTable = (struct PageTable *) pmm_idPageTable();
-    for (uint32_t    i            = 0; i < pdeIndex; ++i) {
+
+    for (uint32_t i = 0; i < pdeIndex; ++i) {
         pageDir[i] = idPageTable->pageDirectory[i];
     }
     return (uintptr_t) pageDir;
@@ -210,25 +220,24 @@ uintptr_t PageTable_copy(uintptr_t srcPD) {
     const uint32_t meta_pde_i = pageToPDEIndex(PT_VADDR);
 
     for (uint32_t i = 0; i != PDE_COUNT; ++i) {
-        if (i == pageToPDEIndex(PT_VADDR))
+        if (i == pageToPDEIndex(PT_VADDR) || i >= gpdes.begin_i && i < gpdes.end_i || i < meta_pde_i) {
             continue;
-        if (i >= gpdes.begin_i && i < gpdes.end_i || i < meta_pde_i) {
-            newPD_[i] = srcPD_[i];
         } else {
             if (srcPD_[i].present) {
                 newPD_[i] = srcPD_[i];
                 uintptr_t ptFrame = pmm_malloc();
-                newPD_[i].pageTableAddress = ptFrame;
+                newPD_[i].pageTableAddress = ptFrame >> PAGE_SHIFT;
 
                 // copy the page table
                 struct PTE *pt_dest = (struct PTE *) ptFrame;
-                struct PTE *pt_src  = (struct PTE *) srcPD_[i].pageTableAddress;
+                struct PTE *pt_src  = (struct PTE *) (srcPD_[i].pageTableAddress << PAGE_SHIFT);
                 memcpy(pt_dest, pt_src, PAGE_SIZE);
             }
         }
     }
 
-    return newPD;
+    return
+            newPD;
 }
 
 bool PageTable_setMapping(

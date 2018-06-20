@@ -7,6 +7,8 @@
 #include <ram/PageTable.h>
 #include <ram/constants.h>
 #include <cpu.h>
+#include <process/scheduler.h>
+#include <ram/PMStat.h>
 
 static const struct multiboot_tag_mmap *get_tag_mmap(uint32_t multiboot_info) {
     struct multiboot_tag *tag;
@@ -28,12 +30,15 @@ void main(uint32_t magic_number, uint32_t address) {
         return;
 
     PageTable_enablePaging();
-    
-    int x = 42;
 
-    asm volatile(
-    "cli\n"
-    "hlt"
-    );
+    PageTable_allocateGlobally(16 * MiB, pmm_frameCount() * sizeof(struct FrameStatus));
+    uintptr_t kernelPT = PageTable_new();
+    PageTable_switchTo(kernelPT);
+
+    PMStat_init((struct FrameStatus *) (16 * MiB));
+
+    initScheduler();
+
+    cpu_enterUserCode(KERNEL_STACK_BASE);
 }
 

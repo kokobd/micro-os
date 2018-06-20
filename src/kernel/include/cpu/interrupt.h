@@ -1,8 +1,8 @@
 #include "RegState.h"
 
-extern void cpu_syscallHandler(RegState *regState);
+extern void cpu_syscallHandler();
 
-extern void cpu_extIntHandler(uint32_t irq_num, RegState *regState);
+extern void cpu_extIntHandler(uint32_t irq_num);
 
 enum cpu_Exception {
     CPU_EXC_DE = 0x0, // Divide-by-zero Error
@@ -32,4 +32,4 @@ enum cpu_Exception {
  * @param exception the exception type
  * @param regState pointer to the saved register state on stack
  */
-extern void cpu_excHandler(enum cpu_Exception exception, RegState *regState);
+extern void cpu_excHandler(enum cpu_Exception exception);

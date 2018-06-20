@@ -3,11 +3,12 @@
 #include <process/syscall.h>
 #include <process/scheduler.h>
 
-void cpu_syscallHandler(RegState *regState) {
-    uint32_t       ret   = 0;
-    struct Process *prev = currentProcess();
+void cpu_syscallHandler() {
+    uint32_t       ret       = 0;
+    struct Process *prev     = currentProcess();
+    const RegState *regState = &prev->regState;
 
-    switch (regState->esi) {
+    switch (prev->regState.esi) {
         case 0:
             ret = (uint32_t) maxMsgBoxId();
             break;
@@ -24,6 +25,5 @@ void cpu_syscallHandler(RegState *regState) {
             break;
     }
     prev->regState.eax = ret;
-    restoreCurrentProcess(regState);
 }
 

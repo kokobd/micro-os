@@ -3,13 +3,15 @@
 
 void initScheduler();
 
-void schedule(RegState *regState);
+void dispatch();
 
 struct Process *currentProcess();
 
 ProcID currentPID();
 
 void restoreCurrentProcess(RegState *regState);
+
+void saveRegState(const RegState *regState);
 
 /**
  * Blocks current process. The process will

@@ -38,8 +38,8 @@ cpu_enterUserCode:
     mov eax, [esp]
     mov [tss + 4], eax
 
-    push 0 ; dumb ss
-    push 0 ; dumb esp
+    push ss ; dumb ss
+    push esp ; dumb esp
     ; push 0x3246 ; eflags
 
     sti

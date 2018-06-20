@@ -38,7 +38,7 @@ static ProcID newPID() {
     return PROC_ID_NULL;
 }
 
-void schedule(RegState *regState) {
+void dispatch() {
     if (scheduler.current == PROC_ID_NULL) {
         if (PQ_isEmpty(&scheduler.ready)) {
             return;
@@ -50,7 +50,6 @@ void schedule(RegState *regState) {
         executeNextProcess();
         PQ_push(&scheduler.ready, prev);
     }
-    restoreProcess(getByID(scheduler.current), regState);
 }
 
 struct Process *getByID(ProcID id) {
@@ -63,11 +62,22 @@ static void restoreProcess(struct Process *process, RegState *regState) {
 }
 
 struct Process *currentProcess() {
-    return getByID(scheduler.current);
+    if (scheduler.current == PROC_ID_NULL) {
+        return NULL;
+    } else {
+        return getByID(scheduler.current);
+    }
 }
 
 void restoreCurrentProcess(RegState *regState) {
-    restoreProcess(currentProcess(), regState);
+    if (currentProcess())
+        restoreProcess(currentProcess(), regState);
+    else {
+        asm volatile(
+        "sti\n"
+        "hlt"
+        );
+    }
 }
 
 void wait(uint8_t msgBoxID) {
@@ -115,7 +125,13 @@ ProcID currentPID() {
 void initScheduler() {
     scheduler.current = PROC_ID_NULL;
     PQ_init(&scheduler.ready);
-    for (ProcID id    = PROC_ID_MIN; id <= PROC_ID_MAX; ++id) {
+
+    for (ProcID id = PROC_ID_MIN; id <= PROC_ID_MAX; ++id) {
         getByID(id)->status.type = PS_INVALID;
     }
+}
+
+void saveRegState(const RegState *regState) {
+    if (currentProcess())
+        currentProcess()->regState = *regState;
 }
