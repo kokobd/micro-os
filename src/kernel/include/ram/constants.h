@@ -16,6 +16,8 @@
 
 #define MiB 0x100000u
 
+#define KERNEL_GLOBAL_DATA (16 * MiB)
+
 #define PROC_BEGIN (128u * MiB)
 
 #define PROC_STACK_BASE (512u * MiB)

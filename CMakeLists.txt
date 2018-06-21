@@ -8,3 +8,5 @@ enable_testing()
 
 add_subdirectory(src/core)
 add_subdirectory(src/kernel)
+add_subdirectory(src/base)
+add_subdirectory(src/apps)

@@ -31,11 +31,11 @@ void main(uint32_t magic_number, uint32_t address) {
 
     PageTable_enablePaging();
 
-    PageTable_allocateGlobally(16 * MiB, pmm_frameCount() * sizeof(struct FrameStatus));
+    PageTable_allocateGlobally(KERNEL_GLOBAL_DATA, pmm_frameCount() * sizeof(struct FrameStatus));
     uintptr_t kernelPT = PageTable_new();
     PageTable_switchTo(kernelPT);
 
-    PMStat_init((struct FrameStatus *) (16 * MiB));
+    PMStat_init((struct FrameStatus *) KERNEL_GLOBAL_DATA);
 
     initScheduler();
 
