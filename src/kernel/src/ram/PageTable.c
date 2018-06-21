@@ -5,30 +5,30 @@
 #include <string.h>
 
 struct PDE {
-    bool     present:1;
-    bool     writable:1;
-    bool     userMode:1;
-    bool     writeThrough:1;
-    bool     cacheDisabled:1;
-    bool     accessed:1;
-    bool     reserved:1;
-    bool     pageSize:1; // 1: 4MB. 0: 4KB
-    bool     globalPage:1;
-    uint8_t  avail:3;
+    bool present:1;
+    bool writable:1;
+    bool userMode:1;
+    bool writeThrough:1;
+    bool cacheDisabled:1;
+    bool accessed:1;
+    bool reserved:1;
+    bool pageSize:1; // 1: 4MB. 0: 4KB
+    bool globalPage:1;
+    uint8_t avail:3;
     uint32_t pageTableAddress:20;
 };
 
 struct PTE {
-    bool     present:1;
-    bool     writable:1;
-    bool     userMode:1;
-    bool     writeThrough:1;
-    bool     cacheDisabled:1;
-    bool     accessed:1;
-    bool     dirty:1;
-    bool     reserved:1;
-    bool     global:1;
-    uint8_t  avail:3;
+    bool present:1;
+    bool writable:1;
+    bool userMode:1;
+    bool writeThrough:1;
+    bool cacheDisabled:1;
+    bool accessed:1;
+    bool dirty:1;
+    bool reserved:1;
+    bool global:1;
+    uint8_t avail:3;
     uint32_t frameAddress:20;
 };
 
@@ -50,13 +50,13 @@ struct PageTable {
  * @param pte pointer to the PTE
  */
 static void initPTE(struct PTE *pte) {
-    pte->present       = false;
-    pte->writable      = true;
-    pte->userMode      = false;
-    pte->writeThrough  = false;
+    pte->present = false;
+    pte->writable = true;
+    pte->userMode = false;
+    pte->writeThrough = false;
     pte->cacheDisabled = false;
-    pte->global        = false;
-    pte->frameAddress  = 0;
+    pte->global = false;
+    pte->frameAddress = 0;
 }
 
 /**
@@ -70,13 +70,13 @@ static void initPT(struct PTE *firstPTE) {
 }
 
 static void initPDE(struct PDE *pde) {
-    pde->present          = false;
-    pde->writable         = true;
-    pde->userMode         = false;
-    pde->writeThrough     = false;
-    pde->cacheDisabled    = false;
-    pde->pageSize         = false;
-    pde->globalPage       = false;
+    pde->present = false;
+    pde->writable = true;
+    pde->userMode = false;
+    pde->writeThrough = false;
+    pde->cacheDisabled = false;
+    pde->pageSize = false;
+    pde->globalPage = false;
     pde->pageTableAddress = 0;
 }
 
@@ -113,9 +113,9 @@ static struct PTE *pageToPTE(uintptr_t page) {
 static void initIdentity() {
     struct PageTable *idPT = (struct PageTable *) pmm_idPageTable();
     // Setup page directory table
-    for (uint32_t    i     = 0; i < PDE_COUNT - 1; ++i) {
+    for (uint32_t i = 0; i < PDE_COUNT - 1; ++i) {
         initPDE(idPT->pageDirectory + i);
-        idPT->pageDirectory[i].present          = true;
+        idPT->pageDirectory[i].present = true;
         idPT->pageDirectory[i].pageTableAddress = (uint32_t) (idPT->pageTables + i) >> PAGE_SHIFT;
     }
     initPD(idPT->pageDirectory + PDE_COUNT - 1);
@@ -125,7 +125,7 @@ static void initIdentity() {
         for (uint32_t j = 0; j < PTE_COUNT; ++j) {
             struct PTE *pte = idPT->pageTables[i] + j;
             initPTE(pte);
-            pte->present      = true;
+            pte->present = true;
             pte->frameAddress = (i << 22u | j << 12u) >> PAGE_SHIFT;
         }
     }
@@ -150,56 +150,63 @@ void PageTable_enablePaging() {
 
 // We don't use this for now.
 struct GlobalPageDirEntries {
-    uint32_t   begin_i;
-    uint32_t   end_i;
+    uint32_t begin_i;
+    uint32_t end_i;
     struct PDE pdes[PDE_COUNT];
 };
 
 static struct GlobalPageDirEntries gpdes;
 
 void PageTable_allocateGlobally(uintptr_t vaddr, size_t size) {
-    gpdes.begin_i  = pageToPDEIndex(vaddr);
-    gpdes.end_i    = pageToPDEIndex(vaddr + core_alignUp(size, PAGE_DIR_SHIFT));
-    uint32_t j_end = core_alignUp(size, PAGE_SHIFT) / PAGE_SIZE;
+    gpdes.begin_i = pageToPDEIndex(vaddr);
+    gpdes.end_i = pageToPDEIndex(vaddr + core_alignUp(size, PAGE_DIR_SHIFT));
 
     for (uint32_t i = gpdes.begin_i; i < gpdes.end_i; ++i) {
         uintptr_t frame = pmm_malloc();
-        gpdes.pdes[i].present          = true;
+        initPDE((struct PDE *) frame);
+        gpdes.pdes[i].present = true;
         gpdes.pdes[i].pageTableAddress = frame >> PAGE_SHIFT;
 
         struct PTE *pageTable = (struct PTE *) frame;
         initPT(pageTable);
 
+        uint32_t j_end;
         if (i == gpdes.end_i - 1) { // last page table
             j_end = (core_alignUp(size, PAGE_SHIFT) / PAGE_SIZE) % PDE_COUNT;
+        } else {
+            j_end = PDE_COUNT;
         }
         for (uint32_t j = 0; j < j_end; ++j) {
-            pageTable[i % PTE_COUNT].present      = true;
-            pageTable[i % PTE_COUNT].frameAddress = pmm_malloc() >> PAGE_SHIFT;
+            pageTable[j].present = true;
+            pageTable[j].frameAddress = pmm_malloc() >> PAGE_SHIFT;
         }
     }
 }
 
 uintptr_t PageTable_new() {
     struct PDE *const pageDir = (struct PDE *) pmm_malloc();
-    struct PTE *const metaPT  = (struct PTE *) pmm_malloc();
+    struct PTE *const metaPT = (struct PTE *) pmm_malloc();
     // Initialize all page directory entires
     initPD(pageDir);
 
     // Initialize meta mapping
     initPT(metaPT);
     uint32_t pdeIndex = pageToPDEIndex(PT_VADDR);
-    pageDir[pdeIndex].present          = true;
+    pageDir[pdeIndex].present = true;
     pageDir[pdeIndex].pageTableAddress = (uintptr_t) metaPT >> PAGE_SHIFT;
-    metaPT[0].present                  = true;
-    metaPT[0].frameAddress             = (uintptr_t) pageDir >> PAGE_SHIFT;
-    metaPT[pdeIndex + 1].present       = true;
-    metaPT[pdeIndex + 1].frameAddress  = (uintptr_t) metaPT >> PAGE_SHIFT;
+    metaPT[0].present = true;
+    metaPT[0].frameAddress = (uintptr_t) pageDir >> PAGE_SHIFT;
+    metaPT[pdeIndex + 1].present = true;
+    metaPT[pdeIndex + 1].frameAddress = (uintptr_t) metaPT >> PAGE_SHIFT;
 
     // Copy global page table entries
     memcpy(pageDir + gpdes.begin_i,
            gpdes.pdes + gpdes.begin_i,
            sizeof(struct PDE) * (gpdes.end_i - gpdes.begin_i));
+    for (uint32_t i = gpdes.begin_i; i != gpdes.end_i; ++i) {
+        metaPT[i + 1].present = true;
+        metaPT[i + 1].frameAddress = pageDir[i].pageTableAddress;
+    }
 
     // Initialize identity map for [0, PT_VADDR)
     // We copy page directory entries before the meta
@@ -207,6 +214,8 @@ uintptr_t PageTable_new() {
 
     for (uint32_t i = 0; i < pdeIndex; ++i) {
         pageDir[i] = idPageTable->pageDirectory[i];
+        metaPT[i + 1].present = true;
+        metaPT[i + 1].frameAddress = pageDir[i].pageTableAddress;
     }
     return (uintptr_t) pageDir;
 }
@@ -230,14 +239,13 @@ uintptr_t PageTable_copy(uintptr_t srcPD) {
 
                 // copy the page table
                 struct PTE *pt_dest = (struct PTE *) ptFrame;
-                struct PTE *pt_src  = (struct PTE *) (srcPD_[i].pageTableAddress << PAGE_SHIFT);
+                struct PTE *pt_src = (struct PTE *) (srcPD_[i].pageTableAddress << PAGE_SHIFT);
                 memcpy(pt_dest, pt_src, PAGE_SIZE);
             }
         }
     }
 
-    return
-            newPD;
+    return newPD;
 }
 
 bool PageTable_setMapping(
@@ -256,22 +264,22 @@ bool PageTable_setMapping(
     struct PTE *meta_pte = metaPT() + pde_i + 1;
     if (!meta_pte->present) {
         uintptr_t new_frame = pmm_malloc();
-        meta_pte->present      = true;
+        meta_pte->present = true;
         meta_pte->frameAddress = new_frame >> PAGE_SHIFT;
-        pde->present           = true;
-        pde->pageTableAddress  = new_frame >> PAGE_SHIFT;
+        pde->present = true;
+        pde->pageTableAddress = new_frame >> PAGE_SHIFT;
 
         PageTable_refresh();
     }
 
-    pte->present      = true;
+    pte->present = true;
     pte->frameAddress = paddr >> PAGE_SHIFT;
 }
 
 uintptr_t PageTable_getMapping(uintptr_t vaddr) {
-    const uint32_t pde_i     = pageToPDEIndex(vaddr);
-    struct PTE     *pte      = pageToPTE(vaddr);
-    struct PTE     *meta_pte = metaPT() + pde_i + 1;
+    const uint32_t pde_i = pageToPDEIndex(vaddr);
+    struct PTE *pte = pageToPTE(vaddr);
+    struct PTE *meta_pte = metaPT() + pde_i + 1;
     if (!meta_pte->present) {
         return 0;
     }
@@ -291,7 +299,7 @@ void PageTable_setAttr(
 
 enum PageAttr PageTable_getAttr(uintptr_t vaddr) {
     enum PageAttr result = PA_NONE;
-    struct PTE    *pte   = pageToPTE(vaddr);
+    struct PTE *pte = pageToPTE(vaddr);
     if (pte->writable)
         result |= PA_WRITABLE;
     if (pte->userMode)
@@ -309,7 +317,7 @@ void PageTable_clearMapping(
         uintptr_t vaddr) {
     if (currentPageTable()->pageDirectory[pageToPDEIndex(vaddr)].present) {
         struct PTE *pte = pageToPTE(vaddr);
-        pte->present      = false;
+        pte->present = false;
         pte->frameAddress = 0;
     }
 
@@ -341,11 +349,11 @@ void PageTable_refresh() {
 }
 
 void PageTable_free() {
-    const uintptr_t rootFrame    = metaPT()[0].frameAddress;
-    uint32_t        metaPT_pde_i = pageToPDEIndex(PT_VADDR);
-    struct PDE      *metaPT_pde  = currentPageTable()->pageDirectory + metaPT_pde_i;
-    uintptr_t       metaFrame    = metaPT_pde->pageTableAddress << PAGE_SHIFT;
-    for (uint32_t   i            = 1; i < PTE_COUNT; ++i) {
+    const uintptr_t rootFrame = metaPT()[0].frameAddress;
+    uint32_t metaPT_pde_i = pageToPDEIndex(PT_VADDR);
+    struct PDE *metaPT_pde = currentPageTable()->pageDirectory + metaPT_pde_i;
+    uintptr_t metaFrame = metaPT_pde->pageTableAddress << PAGE_SHIFT;
+    for (uint32_t i = 1; i < PTE_COUNT; ++i) {
         if (metaPT()[i].present) {
             uintptr_t frame = metaPT()[i].frameAddress << PAGE_SHIFT;
             if (i != metaPT_pde_i + 1) {
