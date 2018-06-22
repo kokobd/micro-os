@@ -17,6 +17,8 @@ add_executable(kernel
         src/ram/PageTable.c
         include/ram/PMStat.h
         src/ram/PMStat.c
+        src/ram/pageFaultHandler.c
+        src/ram/pageFaultHandler.h
 
         include/cpu.h
         src/cpu/cpu.c

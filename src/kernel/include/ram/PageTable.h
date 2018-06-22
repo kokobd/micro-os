@@ -56,8 +56,8 @@ bool PageTable_setMapping(
 uintptr_t PageTable_getMapping(uintptr_t vaddr);
 
 enum PageAttr {
-    PA_NONE      = 0,
-    PA_WRITABLE  = 0b01,
+    PA_NONE = 0,
+    PA_WRITABLE = 0b01,
     PA_USER_MODE = 0b10
 };
 
@@ -71,6 +71,10 @@ void PageTable_setAttr(
 enum PageAttr PageTable_getAttr(uintptr_t vaddr);
 
 void PageTable_removeAttr(uintptr_t page, enum PageAttr attr);
+
+void PageTable_addAttr(uintptr_t page, enum PageAttr attr);
+
+bool PageTable_hasAttr(uintptr_t page, enum PageAttr attr);
 
 /**
  * Remove a page
@@ -88,3 +92,5 @@ do {\
     CODE\
     PageTable_switchTo(curPTRoot);\
 } while (0)
+
+uintptr_t PageTable_id();

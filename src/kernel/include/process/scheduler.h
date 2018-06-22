@@ -31,3 +31,5 @@ void notify(ProcID procID);
 struct Process *getProcessByID(ProcID id);
 
 ProcID forkProcess(ProcID parentID);
+
+void killCurrentProcess();

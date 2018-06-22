@@ -375,3 +375,17 @@ uintptr_t PageTable_currentRoot() {
     );
     return root;
 }
+
+bool PageTable_hasAttr(uintptr_t page, enum PageAttr attr) {
+    enum PageAttr attr_ = PageTable_getAttr(page);
+    return attr_ & attr;
+}
+
+void PageTable_addAttr(uintptr_t page, enum PageAttr attr) {
+    PageTable_setAttr(page, PageTable_getAttr(page) | attr);
+}
+
+uintptr_t PageTable_id() {
+    return pmm_idPageTable();
+}
+

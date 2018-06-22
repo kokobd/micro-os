@@ -2,10 +2,11 @@
 #include <process/Process.h>
 #include <cpu/RegState.h>
 #include "ProcessQueue.h"
+#include <ram/PageTable.h>
 
 struct Scheduler {
-    struct Process      processes[PROC_ID_COUNT];
-    ProcID              current;
+    struct Process processes[PROC_ID_COUNT];
+    ProcID current;
     struct ProcessQueue ready;
 };
 
@@ -52,7 +53,7 @@ void dispatch() {
     }
 }
 
-struct Process *getByID(ProcID id) {
+static struct Process *getByID(ProcID id) {
     return scheduler.processes + id - PROC_ID_MIN;
 }
 
@@ -84,7 +85,7 @@ void wait(uint8_t msgBoxID) {
     struct Process *current = currentProcess();
 
     if (msgBoxID != MSGBOX_LIMIT) {
-        current->status.type  = PS_WAITING;
+        current->status.type = PS_WAITING;
         current->status.boxId = msgBoxID;
     } else {
         current->status.type = PS_WAITING_ANY;
@@ -113,7 +114,7 @@ ProcID forkProcess(ProcID parentID) {
         return childID;
     }
     struct Process *parent = getByID(parentID);
-    struct Process *child  = getByID(childID);
+    struct Process *child = getByID(childID);
     Process_fork(parent, child);
     return childID;
 }
@@ -134,4 +135,9 @@ void initScheduler() {
 void saveRegState(const RegState *regState) {
     if (currentProcess())
         currentProcess()->regState = *regState;
+}
+
+void killCurrentProcess() {
+    Process_exit(currentProcess());
+    executeNextProcess();
 }

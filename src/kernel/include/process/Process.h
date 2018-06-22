@@ -23,7 +23,7 @@ enum ProcStatusType {
 
 struct ProcStatus {
     enum ProcStatusType type;
-    uint8_t             boxId;
+    uint8_t boxId;
 };
 
 /**
@@ -37,9 +37,9 @@ struct ProcStatus {
  *   - ready? waiting for a specific message box? waiting for any message?
  */
 struct Process {
-    uintptr_t         pageTableRoot;
-    RegState          regState;
-    uintptr_t         programBreak;
+    uintptr_t pageTableRoot;
+    RegState regState;
+    uintptr_t programBreak;
     struct MessageBox msgBoxes[MSGBOX_LIMIT];
     struct ProcStatus status;
 };
@@ -74,3 +74,7 @@ void Process_exit(struct Process *process);
 struct MessageBox *Process_msgBox(struct Process *process, int msgBoxID);
 
 bool Process_ownMemory(struct Process *process, uintptr_t begin, size_t size);
+
+inline static bool Process_isValid(struct Process *process) {
+    return process->status.type != PS_INVALID;
+}
