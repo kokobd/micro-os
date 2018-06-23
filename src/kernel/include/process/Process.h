@@ -42,6 +42,7 @@ struct Process {
     uintptr_t programBreak;
     struct MessageBox msgBoxes[MSGBOX_LIMIT];
     struct ProcStatus status;
+    bool isRoot;
 };
 
 void Process_applyPageTable(struct Process *process);

@@ -181,3 +181,7 @@ void exit() {
 void *sbrk(ptrdiff_t diff) {
     return (void *) Process_sbrk(currentProcess(), diff);
 }
+
+void releasePriviledge() {
+    currentProcess()->isRoot = false;
+}

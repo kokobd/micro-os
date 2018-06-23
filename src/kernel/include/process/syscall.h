@@ -50,3 +50,5 @@ int replaceMe(void *image, size_t size, void *entryPoint);
 void exit();
 
 void *sbrk(ptrdiff_t diff);
+
+void releasePriviledge();

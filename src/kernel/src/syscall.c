@@ -42,6 +42,13 @@ void cpu_syscallHandler() {
         case 10:
             ret = (uint32_t) sbrk(regState->eax);
             break;
+        case 11:
+            break;
+        case 12:
+            break;
+        case 13:
+            releasePriviledge();
+            break;
         default:
             break;
     }

@@ -113,6 +113,7 @@ static void initMsgBoxesInvalid(struct MessageBox *msgBoxes, size_t count) {
 void Process_createWithImage(struct Process *process, uintptr_t imagePAddr,
                              size_t imageSize, size_t requestedSize,
                              uintptr_t entryPoint) {
+    process->isRoot = true;
     RegState_init(&process->regState);
 
     process->pageTableRoot = PageTable_new();
@@ -153,6 +154,7 @@ void Process_exit(struct Process *process) {
 }
 
 void Process_fork(struct Process *parent, struct Process *child) {
+    child->isRoot = parent->isRoot;
     child->regState = parent->regState;
     child->programBreak = parent->programBreak;
     child->status = parent->status;
