@@ -78,3 +78,7 @@ bool Process_ownMemory(struct Process *process, uintptr_t begin, size_t size);
 inline static bool Process_isValid(struct Process *process) {
     return process->status.type != PS_INVALID;
 }
+
+void Process_replaceMe(struct Process *process, uintptr_t image, size_t size, uintptr_t entryPoint);
+
+uintptr_t Process_sbrk(struct Process *process, ptrdiff_t diff);

@@ -204,10 +204,10 @@ bool Process_ownMemory(struct Process *process, uintptr_t begin, size_t size) {
     bool ret = true;
 
     PageTable_with(process->pageTableRoot, {
-        uintptr_t begin = core_alignDown(begin, PAGE_SHIFT);
-        uintptr_t end = core_alignUp(begin + size, PAGE_SHIFT);
+        uintptr_t begin_ = core_alignDown(begin, PAGE_SHIFT);
+        uintptr_t end_ = core_alignUp(begin + size, PAGE_SHIFT);
 
-        for (uintptr_t page = begin; page < end; page += PAGE_SIZE) {
+        for (uintptr_t page = begin_; page < end_; page += PAGE_SIZE) {
             if (PageTable_getMapping(page) == 0 ||
                 PageTable_getAttr(page) & PA_USER_MODE == 0) {
                 ret = false;
@@ -216,4 +216,34 @@ bool Process_ownMemory(struct Process *process, uintptr_t begin, size_t size) {
         }
     });
     return ret;
+}
+
+void Process_replaceMe(struct Process *process, uintptr_t image, size_t size, uintptr_t entryPoint) {
+    size_t size_ = core_alignUp(size, PAGE_SHIFT);
+    PageTable_with(process->pageTableRoot, {
+        // move the image
+        const ptrdiff_t shift = image - PROC_BEGIN;
+        for (uintptr_t page = image; page != image + size_; page += PAGE_SIZE) {
+            PageTable_swapPages(page, page - shift);
+        }
+        decreaseProgramBreak(process, process->programBreak - (PROC_BEGIN + size));
+        releaseStackMem();
+        MB_initInvalid(process->msgBoxes);
+    });
+
+    RegState_init(&process->regState);
+    process->regState.eip = entryPoint;
+}
+
+uintptr_t Process_sbrk(struct Process *process, ptrdiff_t diff) {
+    if (diff != 0) {
+        PageTable_with(process->pageTableRoot, {
+            if (diff > 0) {
+                increaseProgramBreak(&process->programBreak, (size_t) diff);
+            } else if (diff < 0) {
+                decreaseProgramBreak(process, (size_t) -diff);
+            }
+        });
+    }
+    return process->programBreak;
 }

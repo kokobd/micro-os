@@ -44,3 +44,9 @@ enum SendError {
 enum SendError sendPacket(const struct Packet *packet);
 
 ProcID fork();
+
+int replaceMe(void *image, size_t size, void *entryPoint);
+
+void exit();
+
+void *sbrk(ptrdiff_t diff);

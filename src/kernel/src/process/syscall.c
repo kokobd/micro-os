@@ -2,14 +2,15 @@
 #include <process/scheduler.h>
 #include <process/syscall.h>
 #include <cpu/RegState.h>
+#include <ram/constants.h>
 
 int maxMsgBoxId() {
     return MSGBOX_LIMIT - 1;
 }
 
 enum MsgBoxError initMsgBox(int id, const struct MsgBoxInfo *info) {
-    struct Process    *current = currentProcess();
-    struct MessageBox *msgBox  = Process_msgBox(current, id);
+    struct Process *current = currentProcess();
+    struct MessageBox *msgBox = Process_msgBox(current, id);
     if (msgBox == NULL) {
         return MBE_INVALID_ID;
     }
@@ -25,8 +26,8 @@ enum MsgBoxError initMsgBox(int id, const struct MsgBoxInfo *info) {
 }
 
 enum MsgBoxError recvMsgFrom(int id, void *buffer) {
-    struct Process    *current = currentProcess();
-    struct MessageBox *msgBox  = Process_msgBox(current, id);
+    struct Process *current = currentProcess();
+    struct MessageBox *msgBox = Process_msgBox(current, id);
     if (msgBox == NULL) {
         return MBE_INVALID_ID;
     }
@@ -49,9 +50,9 @@ enum MsgBoxError recvAnyMsg(void *buffer) {
 
     struct Process *current = currentProcess();
 
-    size_t  maxBufferSize = 0;
+    size_t maxBufferSize = 0;
     bool hasMsgBoxInitialized = false;
-    uint8_t msgBoxID      = MSGBOX_LIMIT;
+    uint8_t msgBoxID = MSGBOX_LIMIT;
 
     for (uint8_t i = 0; i < MSGBOX_LIMIT; ++i) {
         struct MessageBox *msgBox = Process_msgBox(current, i);
@@ -80,8 +81,8 @@ enum MsgBoxError recvAnyMsg(void *buffer) {
 }
 
 enum MsgBoxError closeMsgBox(int id) {
-    struct Process    *current = currentProcess();
-    struct MessageBox *msgBox  = Process_msgBox(current, id);
+    struct Process *current = currentProcess();
+    struct MessageBox *msgBox = Process_msgBox(current, id);
     if (msgBox == NULL) {
         return MBE_INVALID_ID;
     }
@@ -90,8 +91,8 @@ enum MsgBoxError closeMsgBox(int id) {
 }
 
 enum MsgBoxError moveMsgBox(int id, void *newLocation) {
-    struct Process    *current = currentProcess();
-    struct MessageBox *msgBox  = Process_msgBox(current, id);
+    struct Process *current = currentProcess();
+    struct MessageBox *msgBox = Process_msgBox(current, id);
     if (msgBox == NULL) {
         return MBE_INVALID_ID;
     }
@@ -115,7 +116,8 @@ enum SendError sendPacket(const struct Packet *packet) {
         return SE_INVALID_ARGS;
     }
 
-    struct Process *destProcess = getProcessByID((ProcID) packet->pid);
+    const ProcID destID = (const ProcID) packet->pid;
+    struct Process *destProcess = getProcessByID(destID);
     if (destProcess == NULL) {
         return SE_DEST_NOT_REACHABLE;
     }
@@ -133,16 +135,18 @@ enum SendError sendPacket(const struct Packet *packet) {
     }
 
     MB_push(msgBox, packet->message);
+    void *buffer = NULL;
     if (destProcess->status.type == PS_WAITING) {
         if (destProcess->status.boxId == packet->msgBoxId) {
-            void *buffer = (void *) destProcess->regState.ebx;
-            MB_pop(msgBox, buffer);
+            buffer = (void *) destProcess->regState.ebx;
         }
     } else if (destProcess->status.type == PS_WAITING_ANY) {
-        void *buffer = (void *) destProcess->regState.eax;
-        MB_pop(msgBox, buffer);
+        buffer = (void *) destProcess->regState.eax;
     }
-    destProcess->status.type = PS_READY;
+    if (buffer) {
+        MB_pop(msgBox, buffer);
+        notify(destID);
+    }
 
     return SE_NO_ERROR;
 }
@@ -151,4 +155,29 @@ ProcID fork() {
     ProcID childID = forkProcess(currentPID());
     getProcessByID(childID)->regState.eax = 0;
     return childID;
+}
+
+int replaceMe(void *image, size_t size, void *entryPoint) {
+    const uintptr_t image_ = (uintptr_t) image;
+    const uintptr_t entryPoint_ = (uintptr_t) entryPoint;
+
+    // not aligned to page boundary?
+    if ((image_ >> PAGE_SHIFT) << PAGE_SHIFT != image_) {
+        return 1;
+    }
+
+    // entry point not in range?
+    if (entryPoint >= image + size) {
+        return 1;
+    }
+
+    return 0;
+}
+
+void exit() {
+    killCurrentProcess();
+}
+
+void *sbrk(ptrdiff_t diff) {
+    return (void *) Process_sbrk(currentProcess(), diff);
 }

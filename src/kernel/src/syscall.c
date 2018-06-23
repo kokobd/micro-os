@@ -4,8 +4,8 @@
 #include <process/scheduler.h>
 
 void cpu_syscallHandler() {
-    uint32_t       ret       = 0;
-    struct Process *prev     = currentProcess();
+    uint32_t ret = 0;
+    struct Process *prev = currentProcess();
     const RegState *regState = &prev->regState;
 
     switch (prev->regState.esi) {
@@ -20,6 +20,27 @@ void cpu_syscallHandler() {
             break;
         case 3:
             ret = recvAnyMsg((void *) regState->eax);
+            break;
+        case 4:
+            ret = closeMsgBox((int) regState->eax);
+            break;
+        case 5:
+            ret = moveMsgBox((int) regState->eax, (void *) regState->ebx);
+            break;
+        case 6:
+            ret = sendPacket((const struct Packet *) regState->eax);
+            break;
+        case 7:
+            ret = fork();
+            break;
+        case 8:
+            ret = (uint32_t) replaceMe((void *) regState->eax, regState->ebx, (void *) regState->ecx);
+            break;
+        case 9:
+            exit();
+            break;
+        case 10:
+            ret = (uint32_t) sbrk(regState->eax);
             break;
         default:
             break;

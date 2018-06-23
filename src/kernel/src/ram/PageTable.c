@@ -389,3 +389,14 @@ uintptr_t PageTable_id() {
     return pmm_idPageTable();
 }
 
+void PageTable_swapPages(uintptr_t p1, uintptr_t p2) {
+    uintptr_t f1 = PageTable_getMapping(p1);
+    enum PageAttr a1 = PageTable_getAttr(p1);
+    uintptr_t f2 = PageTable_getMapping(p2);
+    enum PageAttr a2 = PageTable_getAttr(p2);
+
+    PageTable_setMapping(p1, f2);
+    PageTable_setAttr(p1, a2);
+    PageTable_setMapping(p2, f1);
+    PageTable_setAttr(p2, a1);
+}

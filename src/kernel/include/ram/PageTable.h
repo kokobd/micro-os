@@ -94,3 +94,5 @@ do {\
 } while (0)
 
 uintptr_t PageTable_id();
+
+void PageTable_swapPages(uintptr_t p1, uintptr_t p2);
