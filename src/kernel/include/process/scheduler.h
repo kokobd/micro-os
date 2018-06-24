@@ -41,3 +41,5 @@ struct IRQManager;
 const struct IRQManager *getIRQManager_const();
 
 struct IRQManager *getIRQManager();
+
+ProcID processToPID(const struct Process *process);

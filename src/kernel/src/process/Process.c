@@ -5,6 +5,7 @@
 #include <core/utility.h>
 #include <string.h>
 #include <ram/PMStat.h>
+#include <process/scheduler.h>
 
 void Process_applyPageTable(struct Process *process) {
     uintptr_t root = process->pageTableRoot;
@@ -115,6 +116,7 @@ static void initMsgBoxesInvalid(struct MessageBox *msgBoxes, size_t count) {
 void Process_createWithImage(struct Process *process, uintptr_t imagePAddr,
                              size_t imageSize, size_t requestedSize,
                              uintptr_t entryPoint) {
+    process->parent = PROC_ID_KERNEL;
     process->isRoot = true;
     RegState_init(&process->regState);
 
@@ -156,6 +158,7 @@ void Process_exit(struct Process *process) {
 }
 
 void Process_fork(struct Process *parent, struct Process *child) {
+    child->parent = processToPID(parent);
     child->isRoot = parent->isRoot;
     child->regState = parent->regState;
     child->programBreak = parent->programBreak;

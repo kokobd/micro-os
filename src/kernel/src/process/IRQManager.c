@@ -37,5 +37,7 @@ void IRQManager_handleIRQ(const struct IRQManager *obj, uint32_t irqNum) {
 }
 
 static void sendIRQMessage(uint32_t irqNum, ProcID pid, uint8_t msgBoxId) {
-    sendMessageTo(pid, msgBoxId, &irqNum);
+    uint32_t msg[2];
+    msg[1] = irqNum;
+    sendMessageTo(pid, msgBoxId, msg);
 }

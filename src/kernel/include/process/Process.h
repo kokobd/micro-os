@@ -43,6 +43,7 @@ struct Process {
     struct MessageBox msgBoxes[MSGBOX_LIMIT];
     struct ProcStatus status;
     bool isRoot;
+    ProcID parent;
 };
 
 void Process_applyPageTable(struct Process *process);

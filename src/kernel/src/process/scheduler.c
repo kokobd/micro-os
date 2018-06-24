@@ -150,7 +150,14 @@ void sendMessageTo(ProcID pid, uint8_t msgBoxId, void *message) {
     struct Process *process = getProcessByID(pid);
     if (process != NULL) {
         struct MessageBox *mb = Process_msgBox(process, msgBoxId);
-        if (mb != NULL) {
+        if (mb != NULL && MB_msgSize(mb) > 4) {
+            ProcID pid_src = currentPID();
+            if (pid_src == PROC_ID_NULL)
+                pid_src = PROC_ID_KERNEL;
+            *(uint8_t *) message = pid_src;
+            *((uint8_t *) message + 1) = pid_src == getProcessByID(pid)->parent ?
+                                         (uint8_t) 1 : (uint8_t) 0;
+
             MB_push(mb, message);
             void *buffer = NULL;
             if (process->status.type == PS_WAITING) {
@@ -175,3 +182,11 @@ const struct IRQManager *getIRQManager_const() {
 struct IRQManager *getIRQManager() {
     return &scheduler.irqManager;
 }
+
+ProcID processToPID(const struct Process *process) {
+    if (process == NULL) {
+        return PROC_ID_NULL;
+    }
+    return (ProcID) (process - scheduler.processes + PROC_ID_MIN);
+}
+
