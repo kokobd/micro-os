@@ -43,11 +43,13 @@ void cpu_syscallHandler() {
             ret = (uint32_t) sbrk(regState->eax);
             break;
         case 11:
+            ret = listenToIRQ(regState->eax, (int) regState->ebx);
             break;
         case 12:
+            ret = (uint32_t) mapPhysicalMemory(regState->eax, regState->ebx);
             break;
         case 13:
-            releasePriviledge();
+            releasePrivilege();
             break;
         default:
             break;

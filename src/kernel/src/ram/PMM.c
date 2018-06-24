@@ -133,3 +133,13 @@ bool pmm_isAvailable(uintptr_t frame) {
     uint32_t i = addressToIndex(frame);
     return core_BitSet_get(&availableFrames, i);
 }
+
+bool pmm_requireFrame(uintptr_t frame) {
+    if (frame <= pmm_firstFrame())
+        return false;
+    uint32_t i = addressToIndex(frame);
+    if (!pmm_isAvailable(frame))
+        return false;
+    core_BitSet_set(&availableFrames, i, false);
+    return true;
+}

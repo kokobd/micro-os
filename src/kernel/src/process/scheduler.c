@@ -3,11 +3,13 @@
 #include <cpu/RegState.h>
 #include "ProcessQueue.h"
 #include <ram/PageTable.h>
+#include <process/IRQManager.h>
 
 struct Scheduler {
     struct Process processes[PROC_ID_COUNT];
     ProcID current;
     struct ProcessQueue ready;
+    struct IRQManager irqManager;
 };
 
 static struct Scheduler scheduler;
@@ -130,6 +132,8 @@ void initScheduler() {
     for (ProcID id = PROC_ID_MIN; id <= PROC_ID_MAX; ++id) {
         getByID(id)->status.type = PS_INVALID;
     }
+
+    IRQManager_init(&scheduler.irqManager);
 }
 
 void saveRegState(const RegState *regState) {
@@ -140,4 +144,34 @@ void saveRegState(const RegState *regState) {
 void killCurrentProcess() {
     Process_exit(currentProcess());
     executeNextProcess();
+}
+
+void sendMessageTo(ProcID pid, uint8_t msgBoxId, void *message) {
+    struct Process *process = getProcessByID(pid);
+    if (process != NULL) {
+        struct MessageBox *mb = Process_msgBox(process, msgBoxId);
+        if (mb != NULL) {
+            MB_push(mb, message);
+            void *buffer = NULL;
+            if (process->status.type == PS_WAITING) {
+                if (process->status.boxId == msgBoxId) {
+                    buffer = (void *) process->regState.ebx;
+                }
+            } else if (process->status.type == PS_WAITING_ANY) {
+                buffer = (void *) process->regState.eax;
+            }
+            if (buffer) {
+                MB_pop(mb, buffer);
+                notify(pid);
+            }
+        }
+    }
+}
+
+const struct IRQManager *getIRQManager_const() {
+    return &scheduler.irqManager;
+}
+
+struct IRQManager *getIRQManager() {
+    return &scheduler.irqManager;
 }

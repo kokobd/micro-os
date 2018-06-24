@@ -47,6 +47,8 @@ add_executable(kernel
         src/process/ProcessQueue.c
         src/process/syscall.c
         include/process/syscall.h
+        include/process/IRQManager.h
+        src/process/IRQManager.c
         )
 target_include_directories(kernel
         PRIVATE include

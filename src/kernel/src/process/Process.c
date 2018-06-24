@@ -56,9 +56,11 @@ static bool increaseProgramBreak(uintptr_t *pb_p, size_t size) {
 }
 
 static void releaseFrame(uintptr_t frame) {
-    PMStat_decrease(frame);
-    if (PMStat_getProcessCount(frame) == 0) {
-        pmm_free(frame);
+    if (frame >= pmm_firstFrame()) {
+        PMStat_decrease(frame);
+        if (PMStat_getProcessCount(frame) == 0) {
+            pmm_free(frame);
+        }
     }
 }
 
@@ -204,19 +206,20 @@ struct MessageBox *Process_msgBox(struct Process *process, int msgBoxID) {
 
 bool Process_ownMemory(struct Process *process, uintptr_t begin, size_t size) {
     bool ret = true;
+    if (process != NULL) {
+        PageTable_with(process->pageTableRoot, {
+            uintptr_t begin_ = core_alignDown(begin, PAGE_SHIFT);
+            uintptr_t end_ = core_alignUp(begin + size, PAGE_SHIFT);
 
-    PageTable_with(process->pageTableRoot, {
-        uintptr_t begin_ = core_alignDown(begin, PAGE_SHIFT);
-        uintptr_t end_ = core_alignUp(begin + size, PAGE_SHIFT);
-
-        for (uintptr_t page = begin_; page < end_; page += PAGE_SIZE) {
-            if (PageTable_getMapping(page) == 0 ||
-                PageTable_getAttr(page) & PA_USER_MODE == 0) {
-                ret = false;
-                break;
+            for (uintptr_t page = begin_; page < end_; page += PAGE_SIZE) {
+                if (PageTable_getMapping(page) == 0 ||
+                    PageTable_getAttr(page) & PA_USER_MODE == 0) {
+                    ret = false;
+                    break;
+                }
             }
-        }
-    });
+        });
+    }
     return ret;
 }
 
@@ -248,4 +251,38 @@ uintptr_t Process_sbrk(struct Process *process, ptrdiff_t diff) {
         });
     }
     return process->programBreak;
+}
+
+void Process_sendMessage(struct Process *process, int msgBoxId, void *message) {
+    struct MessageBox *mb = Process_msgBox(process, msgBoxId);
+    if (mb == NULL) {
+        return;
+    }
+}
+
+static void mapFrame(uintptr_t page, uintptr_t frame) {
+    uintptr_t old_frame = PageTable_getMapping(page);
+    PageTable_setMapping(page, frame);
+    releaseFrame(old_frame);
+}
+
+bool Process_mapPhysicalMemory(struct Process *process, uintptr_t page, uintptr_t frame) {
+    bool ret = false;
+    PageTable_with(process->pageTableRoot, {
+        if (!(page >= PROC_BEGIN && page < process->programBreak)) {
+            ret = false;
+        }
+
+        if (frame < pmm_firstFrame()) {
+            mapFrame(page, frame);
+            ret = true;
+        } else if (pmm_requireFrame(frame)) {
+            PMStat_increase(frame);
+            mapFrame(page, frame);
+            ret = true;
+        } else {
+            ret = false;
+        }
+    });
+    return ret;
 }

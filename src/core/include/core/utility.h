@@ -14,3 +14,6 @@ typedef struct S S
 
 #define core_divUp(X, Y)\
     (((X) + (Y) - 1) / (Y))
+
+#define core_isAligned(X, SHIFT) \
+    ((((X) >> (SHIFT)) << (SHIFT)) == (X))

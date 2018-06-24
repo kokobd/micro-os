@@ -29,3 +29,5 @@ size_t pmm_frameCount();
 uintptr_t pmm_idPageTable();
 
 bool pmm_isAvailable(uintptr_t frame);
+
+bool pmm_requireFrame(uintptr_t frame);

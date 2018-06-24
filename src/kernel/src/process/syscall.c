@@ -3,6 +3,8 @@
 #include <process/syscall.h>
 #include <cpu/RegState.h>
 #include <ram/constants.h>
+#include <process/IRQManager.h>
+#include <core/utility.h>
 
 int maxMsgBoxId() {
     return MSGBOX_LIMIT - 1;
@@ -134,19 +136,7 @@ enum SendError sendPacket(const struct Packet *packet) {
         return SE_INVALID_ARGS;
     }
 
-    MB_push(msgBox, packet->message);
-    void *buffer = NULL;
-    if (destProcess->status.type == PS_WAITING) {
-        if (destProcess->status.boxId == packet->msgBoxId) {
-            buffer = (void *) destProcess->regState.ebx;
-        }
-    } else if (destProcess->status.type == PS_WAITING_ANY) {
-        buffer = (void *) destProcess->regState.eax;
-    }
-    if (buffer) {
-        MB_pop(msgBox, buffer);
-        notify(destID);
-    }
+    sendMessageTo(destID, (uint8_t) packet->msgBoxId, packet->message);
 
     return SE_NO_ERROR;
 }
@@ -171,6 +161,8 @@ int replaceMe(void *image, size_t size, void *entryPoint) {
         return 1;
     }
 
+    Process_replaceMe(currentProcess(), image_, size, entryPoint_);
+
     return 0;
 }
 
@@ -182,6 +174,32 @@ void *sbrk(ptrdiff_t diff) {
     return (void *) Process_sbrk(currentProcess(), diff);
 }
 
-void releasePriviledge() {
+void releasePrivilege() {
     currentProcess()->isRoot = false;
+}
+
+enum ListenToIRQError listenToIRQ(uint32_t irqNum, int msgBoxId) {
+    struct Process *current = currentProcess();
+    if (!current->isRoot) {
+        return IRQ_PERM_DENIED;
+    }
+
+    struct MessageBox *mb = Process_msgBox(current, msgBoxId);
+    if (mb == NULL || MB_msgSize(mb) != sizeof(uint32_t)) {
+        return IRQ_INVALID_ARGS;
+    }
+
+    IRQManager_register(getIRQManager(), irqNum, currentPID(), (uint8_t) msgBoxId);
+}
+
+int mapPhysicalMemory(uintptr_t page, uintptr_t frame) {
+    if (!core_isAligned(page, PAGE_SHIFT) || !core_isAligned(frame, PAGE_SHIFT)) {
+        return 1;
+    }
+
+    if (!Process_mapPhysicalMemory(currentProcess(), page, frame)) {
+        return 1;
+    }
+
+    return 0;
 }

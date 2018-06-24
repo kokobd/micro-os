@@ -33,3 +33,11 @@ struct Process *getProcessByID(ProcID id);
 ProcID forkProcess(ProcID parentID);
 
 void killCurrentProcess();
+
+void sendMessageTo(ProcID pid, uint8_t msgBoxId, void *message);
+
+struct IRQManager;
+
+const struct IRQManager *getIRQManager_const();
+
+struct IRQManager *getIRQManager();

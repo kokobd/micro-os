@@ -1,4 +1,4 @@
-# releasePriviledge
+# releasePrivilege
 
 Number: 13
 

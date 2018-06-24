@@ -1,6 +1,10 @@
+#pragma once
+
 #include "RegState.h"
 
 extern void cpu_syscallHandler();
+
+#define IRQ_COUNT 16u
 
 extern void cpu_extIntHandler(uint32_t irq_num);
 

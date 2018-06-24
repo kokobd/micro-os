@@ -83,3 +83,5 @@ inline static bool Process_isValid(struct Process *process) {
 void Process_replaceMe(struct Process *process, uintptr_t image, size_t size, uintptr_t entryPoint);
 
 uintptr_t Process_sbrk(struct Process *process, ptrdiff_t diff);
+
+bool Process_mapPhysicalMemory(struct Process *process, uintptr_t page, uintptr_t frame);

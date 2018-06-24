@@ -19,4 +19,4 @@ To issue a system call (for a process):
 |10|sbrk|false|
 |11|listenToIRQ|true|
 |12|mapPhysicalMemory|true|
-|13|releasePriviledge|true|
+|13|releasePrivilege|true|
