@@ -1,4 +1,5 @@
 #include <cpu/interrupt.h>
+#include <process/scheduler.h>
 #include "ram/pageFaultHandler.h"
 
 void cpu_excHandler(enum cpu_Exception exception) {
@@ -7,6 +8,8 @@ void cpu_excHandler(enum cpu_Exception exception) {
             onPageFault();
             break;
         default:
+            if (currentProcess())
+                killCurrentProcess();
             break;
     }
 }
