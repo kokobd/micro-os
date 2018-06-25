@@ -86,3 +86,10 @@ void Process_replaceMe(struct Process *process, uintptr_t image, size_t size, ui
 uintptr_t Process_sbrk(struct Process *process, ptrdiff_t diff);
 
 bool Process_mapPhysicalMemory(struct Process *process, uintptr_t page, uintptr_t frame);
+
+void Process_setIsRoot(struct Process *process, bool isRoot);
+
+inline static bool Process_getIsRoot(struct Process *process) {
+    return process->isRoot;
+}
+

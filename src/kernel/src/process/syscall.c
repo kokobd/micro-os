@@ -175,12 +175,12 @@ void *sbrk(ptrdiff_t diff) {
 }
 
 void releasePrivilege() {
-    currentProcess()->isRoot = false;
+    Process_setIsRoot(currentProcess(), false);
 }
 
 enum ListenToIRQError listenToIRQ(uint32_t irqNum, int msgBoxId) {
     struct Process *current = currentProcess();
-    if (!current->isRoot) {
+    if (!Process_getIsRoot(current)) {
         return IRQ_PERM_DENIED;
     }
 

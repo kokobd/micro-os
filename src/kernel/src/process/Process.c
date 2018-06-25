@@ -6,6 +6,7 @@
 #include <string.h>
 #include <ram/PMStat.h>
 #include <process/scheduler.h>
+#include <cpu/RegState.h>
 
 void Process_applyPageTable(struct Process *process) {
     uintptr_t root = process->pageTableRoot;
@@ -113,11 +114,22 @@ static void initMsgBoxesInvalid(struct MessageBox *msgBoxes, size_t count) {
     }
 }
 
+void Process_setIsRoot(struct Process *process, bool isRoot) {
+    process->isRoot = isRoot;
+    uint32_t eflags = process->regState.eflags;
+    if (isRoot) {
+        eflags |= 0b11 << 12;
+    } else {
+        eflags &= ~(0b11 << 12);
+    }
+    process->regState.eflags = eflags;
+}
+
 void Process_createWithImage(struct Process *process, uintptr_t imagePAddr,
                              size_t imageSize, size_t requestedSize,
                              uintptr_t entryPoint) {
     process->parent = PROC_ID_KERNEL;
-    process->isRoot = true;
+    Process_setIsRoot(process, true);
     RegState_init(&process->regState);
 
     process->pageTableRoot = PageTable_new();
@@ -159,7 +171,7 @@ void Process_exit(struct Process *process) {
 
 void Process_fork(struct Process *parent, struct Process *child) {
     child->parent = processToPID(parent);
-    child->isRoot = parent->isRoot;
+    Process_setIsRoot(child, Process_getIsRoot(parent));
     child->regState = parent->regState;
     child->programBreak = parent->programBreak;
     child->status = parent->status;
