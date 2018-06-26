@@ -190,6 +190,7 @@ enum ListenToIRQError listenToIRQ(uint32_t irqNum, int msgBoxId) {
     }
 
     IRQManager_register(getIRQManager(), irqNum, currentPID(), (uint8_t) msgBoxId);
+    return IRQ_NO_ERROR;
 }
 
 int mapPhysicalMemory(uintptr_t page, uintptr_t frame) {

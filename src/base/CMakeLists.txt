@@ -13,6 +13,9 @@ add_library(base STATIC
 
         src/crt.c
         src/crt.asm
+
+        include/base/sys/unistd.h
+        src/sys/unistd.c
         )
 
 target_include_directories(base
