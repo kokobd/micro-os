@@ -3,6 +3,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define PAGE_SIZE 4096
+
+#define PAGE_SHIFT 12
+
 int fork();
 
 int replaceMe(void *image, size_t size, void *entryPoint);

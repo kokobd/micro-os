@@ -9,11 +9,11 @@ enum MsgBoxError initMsgBox(int id, const struct MsgBoxInfo *info) {
     return (enum MsgBoxError) syscall(1, (uint32_t) id, (uint32_t) info, 0, 0);
 }
 
-enum MsgBoxError recvMsgFrom(int id, void *buffer) {
+enum MsgBoxError recvMsgFrom(int id, struct Message *buffer) {
     return (enum MsgBoxError) syscall(2, (uint32_t) id, (uint32_t) buffer, 0, 0);
 }
 
-enum MsgBoxError recvAnyMsg(void *buffer) {
+enum MsgBoxError recvAnyMsg(struct Message *buffer) {
     return (enum MsgBoxError) syscall(3, (uint32_t) buffer, 0, 0, 0);
 }
 

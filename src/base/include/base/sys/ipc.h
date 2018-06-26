@@ -17,11 +17,24 @@ struct MsgBoxInfo {
     uint8_t msgMaxCount;
 };
 
+#pragma pack (push, 1)
+struct MessageHeader {
+    uint8_t senderPID;
+    uint8_t isParent;
+    uint16_t reserved;
+};
+#pragma pack (pop)
+
+struct Message {
+    struct MessageHeader header;
+    uint8_t body[0];
+};
+
 enum MsgBoxError initMsgBox(int id, const struct MsgBoxInfo *);
 
-enum MsgBoxError recvMsgFrom(int id, void *buffer);
+enum MsgBoxError recvMsgFrom(int id, struct Message *buffer);
 
-enum MsgBoxError recvAnyMsg(void *buffer);
+enum MsgBoxError recvAnyMsg(struct Message *buffer);
 
 enum MsgBoxError closeMsgBox(int id);
 
@@ -42,10 +55,3 @@ enum SendError {
 
 enum SendError sendPacket(const struct Packet *packet);
 
-#pragma pack (push, 1)
-struct MessageHeader {
-    uint8_t senderPID;
-    uint8_t isParent;
-    uint16_t reserved;
-};
-#pragma pack (pop)
