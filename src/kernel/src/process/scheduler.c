@@ -1,8 +1,5 @@
 #include <process/scheduler.h>
-#include <process/Process.h>
-#include <cpu/RegState.h>
 #include "ProcessQueue.h"
-#include <ram/PageTable.h>
 #include <process/IRQManager.h>
 
 struct Scheduler {
@@ -142,6 +139,17 @@ void saveRegState(const RegState *regState) {
 }
 
 void killCurrentProcess() {
+    ProcID parentID = currentProcess()->parent;
+    struct Process *parent = getProcessByID(parentID);
+    if (parent != NULL) {
+        struct MessageBox *mb = Process_msgBox(parent, 0);
+        if (mb != NULL && MB_isValid(mb) && MB_msgSize(mb) == 8) {
+            uint32_t msg[2];
+            msg[1] = currentPID();
+            sendMessageTo(parentID, 0, msg);
+        }
+    }
+
     Process_exit(currentProcess());
     executeNextProcess();
 }
@@ -150,7 +158,7 @@ void sendMessageTo(ProcID pid, uint8_t msgBoxId, void *message) {
     struct Process *process = getProcessByID(pid);
     if (process != NULL) {
         struct MessageBox *mb = Process_msgBox(process, msgBoxId);
-        if (mb != NULL && MB_msgSize(mb) > 4) {
+        if (mb != NULL && MB_isValid(mb) && MB_msgSize(mb) > 4 && !MB_isFull(mb)) {
             ProcID pid_src = currentPID();
             if (pid_src == PROC_ID_NULL)
                 pid_src = PROC_ID_KERNEL;
