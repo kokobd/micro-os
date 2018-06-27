@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-MODULES=()
+APPS=(idle demo)
 
 set -o errexit
 
@@ -23,8 +23,10 @@ mkdir -p micro-os
 mount -o loop,offset=1048576 micro-os.img micro-os
 mkdir -p micro-os/boot/micro-os
 cp src/kernel/kernel micro-os/boot/micro-os/
-for item in ${MODULES[*]}; do
-    cp $item micro-os/boot/micro-os/
+for item in ${APPS[*]}; do
+    item_path=src/apps/${item}/${item}
+    ls -lh ${item_path}
+    cp ${item_path} micro-os/boot/micro-os/${item}
 done
 cp -f grub.cfg micro-os/boot/grub/
 

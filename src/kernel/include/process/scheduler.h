@@ -3,6 +3,8 @@
 
 void initScheduler();
 
+void addInitialProcess(uintptr_t location);
+
 void dispatch();
 
 struct Process *currentProcess();

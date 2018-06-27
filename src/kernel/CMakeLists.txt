@@ -5,7 +5,7 @@ set(CMAKE_ASM_NASM_OBJECT_FORMAT elf32)
 set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> <FLAGS> -f elf32 -o <OBJECT> <SOURCE>")
 
 add_executable(kernel
-        src/multiboot2.asm
+        ../multiboot2.asm
         src/kernel_start.asm
         src/main.c
         include/multiboot2.h
@@ -49,6 +49,8 @@ add_executable(kernel
         include/process/syscall.h
         include/process/IRQManager.h
         src/process/IRQManager.c
+        include/process/ELFImage.h
+        src/process/ELFImage.c
         )
 target_include_directories(kernel
         PRIVATE include

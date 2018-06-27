@@ -1,6 +1,7 @@
 #include <process/scheduler.h>
 #include "ProcessQueue.h"
 #include <process/IRQManager.h>
+#include <process/ELFImage.h>
 
 struct Scheduler {
     struct Process processes[PROC_ID_COUNT];
@@ -198,3 +199,14 @@ ProcID processToPID(const struct Process *process) {
     return (ProcID) (process - scheduler.processes + PROC_ID_MIN);
 }
 
+void addInitialProcess(uintptr_t location) {
+    struct ELFImage image;
+    ELFImage_init(&image, location);
+    uintptr_t entryPoint = ELFImage_getEntryPoint(&image);
+    size_t memSize = ELFImage_requestedSize(&image);
+    size_t codeSize = ELFImage_codeSize(&image);
+
+    ProcID pid = newPID();
+    Process_createWithImage(getByID(pid), location, codeSize, memSize, entryPoint);
+    PQ_push(&scheduler.ready, pid);
+}

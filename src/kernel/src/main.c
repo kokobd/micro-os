@@ -26,7 +26,7 @@ static const struct multiboot_tag_mmap *get_tag_mmap(uint32_t multiboot_info) {
 void main(uint32_t magic_number, uint32_t address) {
     cpu_initialize();
     pmm_init(get_tag_mmap(address));
-    if (pmm_firstFrame() >= PT_VADDR)
+    if (pmm_firstFrame() >= PT_VADDR || pmm_firstFrame() >= address)
         return;
 
     PageTable_enablePaging();
@@ -38,6 +38,8 @@ void main(uint32_t magic_number, uint32_t address) {
     PMStat_init((struct FrameStatus *) KERNEL_GLOBAL_DATA);
 
     initScheduler();
+    addInitialProcess(0x500); // demo
+    addInitialProcess(0x4100); // idle
 
     cpu_enterUserCode(KERNEL_STACK_BASE);
 }
